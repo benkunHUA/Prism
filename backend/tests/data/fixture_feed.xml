@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Fixture Feed</title>
+    <item>
+      <title>Update: Fed holds rates steady</title>
+      <link>https://example.com/fed-1</link>
+      <description>&lt;p&gt;The Federal Reserve kept its policy rate unchanged at 4.25 to 4.5 percent on Wednesday, citing continued resilience in the labor market, firm consumer spending, and a gradual easing of price pressures across the major sectors of the United States economy.&lt;/p&gt;</description>
+      <pubDate>Mon, 07 Sep 2026 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>ECB signals cautious path to lower rates</title>
+      <link>https://example.com/ecb-1</link>
+      <description>&lt;p&gt;European Central Bank policymakers signalled that any further reduction in borrowing costs would be gradual and data dependent, noting that underlying inflation remained above target while the euro area economy showed only modest growth momentum across the second half of the year.&lt;/p&gt;</description>
+      <pubDate>Mon, 07 Sep 2026 11:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

@@ -1,8 +1,19 @@
 from datetime import datetime
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.models.entities import Article
+from app.models.entities import Article, SourceCategory
+
+
+def _category_query(db: Session, category: str):
+    """文章的 category 等于板块，或其来源挂载了该板块。"""
+    return (
+        db.query(Article)
+        .join(SourceCategory, SourceCategory.source_id == Article.source_id, isouter=True)
+        .filter(or_(Article.category == category, SourceCategory.category == category))
+        .distinct()
+    )
 
 
 def existing_hashes(db: Session, hashes: list[str]) -> set[str]:
@@ -43,9 +54,7 @@ def insert_articles(db: Session, items: list[dict]) -> int:
 
 def list_articles(db: Session, category: str | None = None,
                   limit: int = 30, offset: int = 0) -> list[Article]:
-    query = db.query(Article)
-    if category:
-        query = query.filter(Article.category == category)
+    query = _category_query(db, category) if category else db.query(Article)
     return query.order_by(Article.fetched_at.desc()).offset(offset).limit(limit).all()
 
 
@@ -56,8 +65,7 @@ def get_article(db: Session, article_id: int) -> Article | None:
 def articles_for_analysis(db: Session, category: str, since: datetime,
                           until: datetime, limit: int = 30) -> list[Article]:
     return (
-        db.query(Article)
-        .filter(Article.category == category)
+        _category_query(db, category)
         .filter(Article.fetched_at >= since, Article.fetched_at < until)
         .order_by(Article.fetched_at.desc())
         .limit(limit)
@@ -66,8 +74,4 @@ def articles_for_analysis(db: Session, category: str, since: datetime,
 
 
 def count_new_since(db: Session, category: str, since: datetime) -> int:
-    return (
-        db.query(Article)
-        .filter(Article.category == category, Article.fetched_at >= since)
-        .count()
-    )
+    return _category_query(db, category).filter(Article.fetched_at >= since).count()
