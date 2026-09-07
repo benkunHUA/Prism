@@ -1,0 +1,12 @@
+[
+  {"name": "白宫新闻室", "url": "https://www.whitehouse.gov/feed/", "feed_type": "rss", "lang": "en", "categories": ["politics"]},
+  {"name": "美国国务院新闻", "url": "https://www.state.gov/feed/", "feed_type": "rss", "lang": "en", "categories": ["politics"]},
+  {"name": "BBC 世界新闻", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "feed_type": "rss", "lang": "en", "categories": ["politics", "economy"]},
+  {"name": "英国外交部 GOV.UK", "url": "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office.atom", "feed_type": "rss", "lang": "en", "categories": ["politics"]},
+  {"name": "美联储新闻发布", "url": "https://www.federalreserve.gov/feeds/press_all.xml", "feed_type": "rss", "lang": "en", "categories": ["finance", "economy"]},
+  {"name": "美国能源信息署 EIA", "url": "https://www.eia.gov/rss/press_rss.xml", "feed_type": "rss", "lang": "en", "categories": ["economy", "finance"]},
+  {"name": "英格兰银行新闻", "url": "https://www.bankofengland.co.uk/rss/news", "feed_type": "rss", "lang": "en", "categories": ["economy", "finance"]},
+  {"name": "美国国防部新闻", "url": "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=20", "feed_type": "rss", "lang": "en", "categories": ["military"]},
+  {"name": "英国国防部 GOV.UK", "url": "https://www.gov.uk/government/organisations/ministry-of-defence.atom", "feed_type": "rss", "lang": "en", "categories": ["military"]},
+  {"name": "世界银行新闻", "url": "https://www.worldbank.org/en/news/all?format=feed", "feed_type": "rss", "lang": "en", "categories": ["economy"]}
+]
