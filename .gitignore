@@ -20,6 +20,9 @@ frontend/dist/
 # 可视化讨论伴侣会话
 .superpowers/
 
+# 隔离 worktree
+.worktrees/
+
 # 编辑器/系统
 .DS_Store
 .idea/
