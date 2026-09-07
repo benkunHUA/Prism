@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,14 @@ def _today_start() -> datetime:
     )
 
 
+def _next_run_for(task) -> datetime | None:
+    if task.next_run_at:
+        return task.next_run_at
+    trigger = CronTrigger.from_crontab(task.cron, timezone="UTC")
+    fire = trigger.get_next_fire_time(None, datetime.now(timezone.utc))
+    return fire.replace(tzinfo=None) if fire else None
+
+
 @router.get("/summary")
 def summary(db: Session = Depends(get_db)) -> dict:
     since = _today_start()
@@ -26,7 +35,7 @@ def summary(db: Session = Depends(get_db)) -> dict:
     healthy = sum(1 for s in sources if s.enabled and s.error_count == 0)
     enabled = sum(1 for s in sources if s.enabled)
     next_run = min(
-        (t.next_run_at for t in tasks_repo.list_tasks(db) if t.enabled and t.next_run_at),
+        (r for r in (_next_run_for(t) for t in tasks_repo.list_tasks(db) if t.enabled) if r),
         default=None,
     )
     return {
