@@ -92,9 +92,10 @@ flowchart TD
 
 ### 5.3 articles · 原文
 
-`id, source_id(FK), category, url(UNIQUE), title, summary, content_text, published_at, fetched_at, dedupe_hash, lang`
+`id, source_id(FK, nullable), category, url(UNIQUE), title, summary, content_text, published_at, fetched_at, dedupe_hash, lang`
 
 - `url` 唯一约束兜底；`dedupe_hash` 为规范化 URL/标题的 SHA-256
+- 删除源时保留其历史文章（`source_id` 置空，`ON DELETE SET NULL`），避免破坏分析与引用关联
 - 正文长度上限 8000 字符，超出截断
 
 ### 5.4 analyses · 分析产物
@@ -181,7 +182,7 @@ flowchart TD
 | 方法与路径 | 用途 |
 | --- | --- |
 | GET /api/health | 健康检查 |
-| GET /api/dashboard/summary | 仪表盘统计（今日新增、今日分析、任务健康、下次运行） |
+| GET /api/dashboard/summary | 仪表盘统计（今日新增、今日分析、源健康、下次运行） |
 | GET /api/categories | 板块列表与各板块最新动态 |
 | GET /api/categories/{cat}/articles | 板块快讯流（分页） |
 | GET /api/categories/{cat}/analyses | 板块分析列表 |
@@ -189,6 +190,7 @@ flowchart TD
 | GET /api/articles/{id} | 原文详情 |
 | GET/POST /api/sources | 源列表 / 新增源 |
 | PATCH /api/sources/{id} | 编辑、启停源 |
+| DELETE /api/sources/{id} | 删除源（历史文章保留，来源置空） |
 | POST /api/sources/{id}/test | 抓取测试（真实抓一次，返回结果） |
 | GET/POST /api/tasks | 任务列表 / 新增任务 |
 | PATCH /api/tasks/{id} | 编辑、启停 |
@@ -205,7 +207,7 @@ flowchart TD
 
 ### 9.2 仪表盘
 
-统计卡（今日新增原文 / 今日分析 / 采集任务健康 / 下次每日分析）+ 四板块卡片（最新分析 + 3 条快讯）+ 最近运行日志（含失败重跑入口）。
+统计卡（今日新增原文 / 今日分析 / 采集源健康：正常数 ÷ 启用数 / 下次每日分析）+ 四板块卡片（最新分析 + 3 条快讯）+ 最近运行日志（含失败重跑入口）。
 
 ### 9.3 板块页
 
