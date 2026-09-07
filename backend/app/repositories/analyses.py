@@ -47,3 +47,15 @@ def latest_analysis(db: Session, category: str, kind: str) -> Analysis | None:
         .order_by(Analysis.created_at.desc())
         .first()
     )
+
+
+def count_daily_since(db: Session, since: datetime) -> int:
+    return (
+        db.query(Analysis)
+        .filter(
+            Analysis.kind == "daily",
+            Analysis.status == "success",
+            Analysis.created_at >= since,
+        )
+        .count()
+    )

@@ -75,3 +75,7 @@ def articles_for_analysis(db: Session, category: str, since: datetime,
 
 def count_new_since(db: Session, category: str, since: datetime) -> int:
     return _category_query(db, category).filter(Article.fetched_at >= since).count()
+
+
+def count_all_since(db: Session, since: datetime) -> int:
+    return db.query(Article).filter(Article.fetched_at >= since).count()
