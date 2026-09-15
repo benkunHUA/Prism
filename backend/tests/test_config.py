@@ -11,6 +11,7 @@ def test_defaults():
     assert s.collect_cron == "0 */4 * * *"
     assert s.daily_analysis_hhmm == "08:00"
     assert s.extract_enabled is True
+    assert s.market_provider == "eastmoney"
     assert s.market_symbols == ""
 
 

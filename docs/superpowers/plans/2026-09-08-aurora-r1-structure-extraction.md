@@ -1858,3 +1858,9 @@ PY
 - R1 只做结构化数据与提取，不改动四套每日报告模板（属 R2）；`analyses` 现有通用模板在 R2 替换。
 - 说明一个落地约定：importance 作为展示估计值写入自动确认条目，不单独进“待确认”队列（避免所有行都进队列）；如需修正可在页面编辑。
 - 既有开发库 `data/aurora.db` 需删除后重建（新表由 create_all 建），无迁移脚本；生产不存在存量数据。
+
+## 实施期调整（2026-09-15）
+
+- Task 5 原计划默认 `StooqCsvProvider`；实测 Stooq `/q/l/` 已 404、Yahoo chart 在当前网络不可用，东方财富批量接口可用。
+- 调整：新增 `EastmoneyProvider`（单次批量请求 + 单资产缺失降级）并设为默认（`MARKET_PROVIDER=eastmoney`），Stooq 保留为备选；Provider 接口统一为 `fetch(client, specs) -> (rows, errors)`。
+- `MARKET_SYMBOLS` 默认留空，行情功能按需启用；相关单测改为东方财富 fixture + Stooq 降级两个用例。

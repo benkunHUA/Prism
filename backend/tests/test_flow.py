@@ -99,13 +99,16 @@ class JsonProvider(ChatProvider):
         return json.dumps(payload, ensure_ascii=False)
 
 
-def _dual_client(stooq_csv: Path):
+def _dual_client(tmp_path: Path):
     feed = FIXTURE.read_bytes()
-    csv_bytes = stooq_csv.read_bytes()
+    em_payload = (
+        '{"rc":0,"data":{"total":1,"diff":[{"f12":"SPX","f13":100,'
+        '"f14":"标普500","f2":7584.64,"f3":-0.46}]}}'
+    ).encode()
 
     def handler(request):
-        if "stooq.com" in str(request.url):
-            return httpx.Response(200, content=csv_bytes)
+        if "push2.eastmoney.com" in str(request.url):
+            return httpx.Response(200, content=em_payload)
         return httpx.Response(200, content=feed)
 
     return httpx.Client(transport=httpx.MockTransport(handler))
@@ -121,13 +124,10 @@ def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
     task = tasks.create_task(db, name="采集", kind="collect", category=None, cron="0 */4 * * *")
     settings = Settings(
         _env_file=None, extract_enabled=True,
-        market_symbols="index|标普500=^spx",
+        market_symbols="index|标普500=100.SPX",
     )
-    stooq = tmp_path / "stooq.csv"
-    stooq.write_text("Symbol,Date,Time,Open,High,Low,Close,Volume\n"
-                     "^spx,2026-09-08,16:00:00,6000,6010,5950,5980,1\n")
     result = run_task_flow(
-        db, task, client=_dual_client(stooq), provider=JsonProvider(settings), settings=settings,
+        db, task, client=_dual_client(tmp_path), provider=JsonProvider(settings), settings=settings,
     )
     assert result["status"] == "success"
     assert result["new"] == 2
