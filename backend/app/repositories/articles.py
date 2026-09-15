@@ -79,3 +79,7 @@ def count_new_since(db: Session, category: str, since: datetime) -> int:
 
 def count_all_since(db: Session, since: datetime) -> int:
     return db.query(Article).filter(Article.fetched_at >= since).count()
+
+
+def list_new_since(db: Session, since: datetime) -> list[Article]:
+    return db.query(Article).filter(Article.fetched_at >= since).order_by(Article.id).all()

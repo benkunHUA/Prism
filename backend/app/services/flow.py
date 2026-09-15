@@ -12,7 +12,9 @@ from app.repositories import logs as logs_repo
 from app.repositories import tasks as tasks_repo
 from app.services import analyzer
 from app.services.collector import collect_new
+from app.services.extraction.extractor import extract_article
 from app.services.llm import ChatProvider, get_provider
+from app.services.marketdata import run_snapshots
 
 
 def _utcnow() -> datetime:
@@ -38,6 +40,21 @@ def run_task_flow(db: Session, task: Task, *, client=None,
             fetched += result["fetched"]
             new += result["new"]
             errors.extend(result["errors"])
+            if settings.extract_enabled and new:
+                prov = provider or get_provider(settings)
+                for article in articles_repo.list_new_since(db, started):
+                    try:
+                        stats = extract_article(db, article, prov, settings)
+                        if stats["failed"]:
+                            errors.append(f"文章 {article.id} 提取失败 {stats['failed']} 项")
+                    except Exception as exc:  # noqa: BLE001
+                        errors.append(f"文章 {article.id} 提取异常: {exc}")
+            if settings.market_symbols and (task.category is None or task.category == "finance"):
+                try:
+                    snap = run_snapshots(db, settings, client=client)
+                    errors.extend(f"行情: {e}" for e in snap["errors"])
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"行情快照失败: {exc}")
             brief_categories = _task_categories(task)
             prov = provider or get_provider(settings)
             since = started - timedelta(hours=6)
