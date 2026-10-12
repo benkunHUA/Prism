@@ -15,6 +15,11 @@ import { buildHeatScale, pointSize, regionPoints } from "../../utils/geo";
 echarts.use([MapChart, ScatterChart, GeoComponent, TooltipComponent, CanvasRenderer]);
 echarts.registerMap("world", worldGeo as never);
 
+/** 底图要素名即地区 code；每次全量下发，避免合并更新后留下旧配色。 */
+const REGION_CODES: string[] = (
+  worldGeo as unknown as { features: { properties: { name: string } }[] }
+).features.map((feature) => feature.properties.name);
+
 interface Props {
   regions: GeoRegion[];
   categories: string[];
@@ -59,7 +64,9 @@ export default function WorldMap({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ReturnType<typeof echarts.init> | null>(null);
   const handlerRef = useRef(onSelect);
+  const visibleRef = useRef<Set<string>>(new Set());
   handlerRef.current = onSelect;
+  visibleRef.current = new Set(regions.map((region) => region.code));
 
   const option = useMemo(() => {
     const heat = buildHeatScale(regions.map((region) => region.count));
@@ -87,7 +94,7 @@ export default function WorldMap({
               : "";
           }
           const region = regionByCode.get(params.name ?? "");
-          return region ? MAP_BOARD_TEXT.areaTooltip(region.name, region.count) : params.name ?? "";
+          return region ? MAP_BOARD_TEXT.areaTooltip(region.name, region.count) : "";
         },
       },
       geo: {
@@ -103,18 +110,26 @@ export default function WorldMap({
           label: { show: false },
         },
         select: { disabled: true },
+        // geo 组件的区域配色只认 geo.regions，map series 的 data.itemStyle 不参与绘制
+        regions: REGION_CODES.map((code) => {
+          const region = regionByCode.get(code);
+          return {
+            name: code,
+            itemStyle: {
+              areaColor: !region
+                ? EMPTY_AREA_COLOR
+                : code === selected
+                  ? SELECTED_AREA_COLOR
+                  : heat(region.count),
+            },
+          };
+        }),
       },
       series: [
         {
           type: "map" as const,
           geoIndex: 0,
-          data: regions.map((region) => ({
-            name: region.code,
-            value: region.count,
-            itemStyle: {
-              areaColor: region.code === selected ? SELECTED_AREA_COLOR : heat(region.count),
-            },
-          })),
+          data: regions.map((region) => ({ name: region.code, value: region.count })),
         },
         {
           type: "scatter" as const,
@@ -132,17 +147,21 @@ export default function WorldMap({
   }, [regions, categories, selected]);
 
   useEffect(() => {
-    if (!hostRef.current) return;
-    const chart = echarts.init(hostRef.current);
+    const host = hostRef.current;
+    if (!host) return;
+    const chart = echarts.init(host);
     chartRef.current = chart;
     chart.on("click", (params: ChartParams) => {
       const point = params.data as ScatterDatum | undefined;
       const code = params.seriesType === "scatter" ? point?.code : params.name;
-      if (code) handlerRef.current(code);
+      if (code && visibleRef.current.has(code)) handlerRef.current(code);
     });
     const resize = () => chart.resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(host);
     window.addEventListener("resize", resize);
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", resize);
       chart.dispose();
       chartRef.current = null;
@@ -150,7 +169,7 @@ export default function WorldMap({
   }, []);
 
   useEffect(() => {
-    chartRef.current?.setOption(option, true);
+    chartRef.current?.setOption(option);
   }, [option]);
 
   return (

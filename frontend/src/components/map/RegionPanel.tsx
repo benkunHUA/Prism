@@ -71,7 +71,9 @@ export default function RegionPanel({
         </Button>
       }
     >
-      {items.length === 0 ? (
+      {detail.error ? (
+        <EmptyHint text={MAP_BOARD_TEXT.regionError(detail.error)} compact />
+      ) : items.length === 0 ? (
         <EmptyHint text={MAP_BOARD_TEXT.regionEmpty} compact />
       ) : (
         <List

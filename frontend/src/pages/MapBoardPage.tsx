@@ -1,5 +1,5 @@
 import { Card, Col, Row } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/endpoints";
 import EmptyHint from "../components/EmptyHint";
@@ -11,7 +11,7 @@ import RegionPanel from "../components/map/RegionPanel";
 import WorldMap from "../components/map/WorldMap";
 import { CATEGORIES } from "../constants/categories";
 import type { GeoWindow } from "../constants/geo";
-import { MAP_BOARD_STYLE } from "../constants/mapBoard";
+import { MAP_BOARD_STYLE, MAP_BOARD_TEXT } from "../constants/mapBoard";
 import { useAsync } from "../hooks/useAsync";
 import { formatDateTime } from "../utils/format";
 import { filterRegions } from "../utils/geo";
@@ -32,6 +32,12 @@ export default function MapBoardPage() {
     () => filterRegions(geo.data?.regions ?? [], activeCategories),
     [geo.data, activeCategories],
   );
+
+  useEffect(() => {
+    if (selected && !visibleRegions.some((region) => region.code === selected)) {
+      setSelected(null);
+    }
+  }, [selected, visibleRegions]);
 
   function toggleCategory(key: string) {
     setActiveCategories((current) => {
@@ -70,7 +76,10 @@ export default function MapBoardPage() {
           },
         ]}
       />
-      {dashboard.error ? <EmptyHint text={`后端不可用：${dashboard.error}`} compact /> : null}
+      {dashboard.error ? (
+        <EmptyHint text={MAP_BOARD_TEXT.apiUnavailable(dashboard.error)} compact />
+      ) : null}
+      {geo.error ? <EmptyHint text={MAP_BOARD_TEXT.apiUnavailable(geo.error)} compact /> : null}
       <CategoryStrip overview={overview.data ?? []} />
       <MapLegend
         windowKey={windowKey}

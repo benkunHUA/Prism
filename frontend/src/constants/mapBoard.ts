@@ -38,4 +38,6 @@ export const MAP_BOARD_TEXT = {
   unknownSource: "未知来源",
   stripCount: (count: number) => `近 24h ${count} 篇`,
   stripPending: (label: string) => `${label}今日报告尚未生成`,
+  apiUnavailable: (reason: string) => `后端不可用：${reason}`,
+  regionError: (reason: string) => `地区新闻加载失败：${reason}`,
 } as const;
