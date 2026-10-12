@@ -782,7 +782,7 @@ git commit -m "feat(backend): 来源地区兜底补标"
 - Modify: `backend/app/api/routes_articles.py`、`backend/app/main.py`
 - Test: `backend/tests/test_api_geo.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_api_geo.py
@@ -852,12 +852,12 @@ def test_region_articles_endpoint(client):
     assert client.get("/api/regions/nowhere/articles").status_code == 404
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_api_geo.py -q`
 Expected: FAIL —— 404（路由还不存在）
 
-- [ ] **Step 3: 抽出共享序列化器**
+- [x] **Step 3: 抽出共享序列化器**
 
 ```python
 # backend/app/api/serializers.py
@@ -886,7 +886,7 @@ from app.api.serializers import article_out
 
 并把两个用到 `_out(...)` 的地方改成 `article_out(...)`（`get_article` 里那处写成 `{**article_out(article), "content_text": article.content_text}`）。
 
-- [ ] **Step 4: 实现接口**
+- [x] **Step 4: 实现接口**
 
 ```python
 # backend/app/api/routes_geo.py
@@ -971,12 +971,12 @@ def region_articles(code: str, window: str = Query(default="24h"),
     app.include_router(routes_geo.router)
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_api_geo.py tests/test_api_content.py -q`
 Expected: PASS（含既有文章接口用例，验证序列化器抽离无回归）
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add backend/app/api/serializers.py backend/app/api/routes_geo.py \
