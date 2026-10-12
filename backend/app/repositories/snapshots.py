@@ -29,3 +29,21 @@ def list_snapshots(db: Session, batch_id: str | None = None,
         .limit(limit)
         .all()
     )
+
+
+def recent_batch_ids(db: Session, limit: int = 2) -> list[str]:
+    """按抓取时间倒序返回最近的批次 id，用于「较上轮」对比。"""
+
+    rows = (
+        db.query(MarketSnapshot.batch_id, MarketSnapshot.captured_at)
+        .order_by(MarketSnapshot.captured_at.desc())
+        .limit(200)
+        .all()
+    )
+    ids: list[str] = []
+    for batch_id, _ in rows:
+        if batch_id and batch_id not in ids:
+            ids.append(batch_id)
+        if len(ids) >= limit:
+            break
+    return ids
