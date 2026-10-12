@@ -23,6 +23,8 @@ def build_extraction_prompt(category: str, *, title: str, body: str, url: str) -
         )
     return (
         f"你是 {category} 板块的结构化信息提取器。仅基于给定文章，输出 JSON，不要输出其它文字。\n"
+        "regions 数组（可留空）：新闻发生地，取值优先用国家名或热点区名"
+        "（台海/加沙/南海/红海/北极）；可多个；判断不出发生地时给空数组。\n"
         f"events 数组（可空）：subtype 取自 {allowed}；actor 主体；region 地区；"
         "occurred_at ISO 时间；summary 事实摘要（不改写、不推断）；importance 取 high/medium/low；"
         "同一战线/同一事件多次报道时给相同 group_key。"

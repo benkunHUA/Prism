@@ -83,3 +83,22 @@ def test_extract_economy_writes_confirmed_indicator(db):
     })
     extract_article(db, art, provider, Settings(_env_file=None))
     assert indicators.list_indicators(db)[0].verification_status == "confirmed"
+
+
+def test_extract_writes_normalized_regions_and_drops_unknown(db):
+    from app.core.config import Settings
+    from app.repositories import article_regions as regions_repo
+
+    art = _make_article(db, "military", "https://example.com/m-region")
+    settings = Settings(_env_file=None)
+    provider = FakeProvider(settings, {
+        "category": "military",
+        "military": {"weapons": [], "conflicts": [],
+                     "regions": ["以色列", "加沙地带", "火星"]},
+    })
+
+    stats = extract_article(db, art, provider, settings)
+
+    assert stats["failed"] == 0
+    # 词表外的"火星"被丢弃，不落库
+    assert regions_repo.codes_for_article(db, art.id) == {"il", "gaza"}

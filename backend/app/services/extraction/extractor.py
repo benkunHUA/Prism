@@ -7,7 +7,9 @@ import re
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.geo import normalize_region
 from app.models.entities import Article
+from app.repositories import article_regions as article_regions_repo
 from app.repositories import indicators as indicators_repo
 from app.repositories import stances as stances_repo
 from app.repositories import timeline as timeline_repo
@@ -45,6 +47,14 @@ def _parse_json(raw: str) -> dict:
     if fence:
         text = fence.group(1)
     return json.loads(text)
+
+
+def _write_regions(db: Session, raw_regions: list[str], article_id: int) -> None:
+    """归一化 LLM 给的地区名并落库；词表外的一律丢弃。"""
+    codes = [code for code in (normalize_region(name) for name in raw_regions) if code]
+    if not codes:
+        return
+    article_regions_repo.write_regions(db, article_id=article_id, codes=codes, source="llm")
 
 
 def _write_timeline(db: Session, category: str, items: list[TimelineItemIn],
@@ -102,6 +112,7 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
         except Exception:  # noqa: BLE001
             stats["failed"] += 1
             continue
+        _write_regions(db, parsed.regions, article.id)
         if category == "politics":
             _write_timeline(db, "politics", parsed.events, article.id, stats)
             for stance in parsed.stances:
