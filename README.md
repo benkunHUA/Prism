@@ -46,9 +46,13 @@ cd frontend && npm install && npm run dev                        # 打开 http:/
 ### 模型与输出预算
 
 默认 `LLM_MODEL=deepseek-chat`（非推理模型）。如果换成推理模型（例如 `deepseek-v4-flash`），
-reasoning 也计入 `max_tokens`，需要把输出预算调大，否则会因预算耗尽只拿到推理过程、正文为空：
+reasoning 也计入 `max_tokens`，会因预算耗尽只拿到推理过程、正文为空。两种应对方式：
 
 ```dotenv
+# 方式一（推荐）：关闭思考模式，采集/简报类任务不需要思维链
+LLM_THINKING=disabled
+
+# 方式二：保留推理，但把输出预算调大
 LLM_BRIEF_MAX_TOKENS=3000
 LLM_DAILY_MAX_TOKENS=12000
 LLM_EXTRACT_MAX_TOKENS=4000

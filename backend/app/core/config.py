@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     llm_brief_max_tokens: int = 3000
     llm_daily_max_tokens: int = 12000
     llm_extract_max_tokens: int = 4000
+    # DeepSeek 推理模型（如 deepseek-v4-flash）默认会把预算消耗在 reasoning 上；
+    # 采集/简报类任务不需要思维链，默认关闭。设为 auto 则交回模型决定。
+    llm_thinking: str = "disabled"
 
     collect_cron: str = "0 */4 * * *"
     daily_analysis_hhmm: str = "08:00"
