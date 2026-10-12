@@ -1,0 +1,130 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fb;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+.aurora-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #fff;
+  border-bottom: 1px solid #e6eaf2;
+  padding: 0 24px;
+}
+
+.aurora-logo {
+  font-weight: 700;
+  font-size: 18px;
+  color: #2563eb;
+  letter-spacing: 0.5px;
+}
+
+.aurora-nav {
+  flex: 1;
+  border-bottom: none;
+  min-width: 0;
+}
+
+.aurora-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aurora-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
+
+.aurora-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aurora-grid-2 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+}
+
+.aurora-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1080px) {
+  .aurora-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aurora-muted {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.up {
+  color: #cf1322;
+}
+
+.down {
+  color: #0f9d58;
+}
+
+.md-body {
+  line-height: 1.75;
+  color: #1f2937;
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3 {
+  margin: 20px 0 8px;
+}
+
+.md-body h2 {
+  font-size: 17px;
+  border-left: 3px solid #2563eb;
+  padding-left: 8px;
+}
+
+.md-body ul,
+.md-body ol {
+  padding-left: 22px;
+}
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.md-body th,
+.md-body td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.md-body blockquote {
+  margin: 12px 0;
+  padding: 6px 12px;
+  border-left: 3px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.md-body code {
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: 1px 4px;
+}

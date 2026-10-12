@@ -7,6 +7,8 @@ __pycache__/
 # Node
 node_modules/
 frontend/dist/
+*.tsbuildinfo
+frontend/dist/
 
 # 环境与密钥
 .env
