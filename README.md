@@ -26,7 +26,17 @@ cd frontend && npm install && npm run dev                        # 打开 http:/
 开发态 `/api` 由 Vite 代理到 `127.0.0.1:8000`（可用 `frontend/.env` 的 `VITE_API_BASE` 覆盖）。
 校验命令：`npm test`（纯函数单测）、`npm run build`（类型检查 + 产物构建）。
 
-页面：仪表盘、政治/经济/金融/军事四个差异化板块页、源管理、任务管理；顶栏含“待确认”审核抽屉与“手动采集”按钮。
+页面：看板（世界地图）、政治/经济/金融/军事四个差异化板块页、源管理、任务管理；顶栏含“待确认”审核抽屉与“手动采集”按钮。
+
+看板即世界地图：底层按国家填色表示新闻热度，上层彩色点表示各板块分布，点击地区在右栏就地查看该地区新闻，
+时间窗默认近 24 小时（可切 7 / 30 天）。图上「未定位 N 条」表示该时间窗内没有地理标签的文章数。
+
+- 地区词表在 `backend/app/core/geo.py`（国家 code + 中文名 + 别名 + 坐标，另含台海/加沙/南海/红海/北极等热点区）。
+  增补国家只需在词表里加一条，再重跑一次底图脚本：
+  `cd frontend && node scripts/build-world-geo.mjs /tmp/ne_110m_countries.geojson`，
+  `backend/tests/test_geo_asset.py` 会检查词表里的每个国家在底图里都有几何。
+- 文章地区标签由抽取管线顺带产出（不额外调用 LLM），抽取关闭或识别失败时回退到「来源地区」；
+  来源地区在源管理页配置。
 
 ## 四板块每日报告模板
 
@@ -123,6 +133,9 @@ uv run python scripts/find_secid.py 黄金 白银 --class commodity --count 5
 ## 主要 API
 
 - `GET /api/dashboard/summary` 仪表盘统计
+- `GET /api/dashboard/geo?window=24h|7d|30d` 看板地区聚合
+- `GET /api/regions` 地区选项（国家 + 热点区）
+- `GET /api/regions/{code}/articles?window=&category=` 某地区文章列表
 - `GET /api/categories`、`GET /api/categories/{cat}/articles`、`GET /api/categories/{cat}/analyses`
 - `GET /api/analyses/{id}`、`GET /api/articles/{id}`
 - `GET|POST /api/sources`、`PATCH|DELETE /api/sources/{id}`、`POST /api/sources/{id}/test`
