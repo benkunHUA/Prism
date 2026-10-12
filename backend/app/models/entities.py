@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -99,6 +99,99 @@ class AnalysisArticle(Base):
     article_id: Mapped[int] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"))
     analysis: Mapped[Analysis] = relationship(back_populates="article_links")
     article: Mapped[Article] = relationship(back_populates="analysis_links")
+
+
+class TimelineEvent(Base):
+    """四类事件共用底表：政治 / 军事冲突 / 经济政策 / 金融市场。"""
+    __tablename__ = "timeline_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category: Mapped[str] = mapped_column(String(20), index=True)
+    subtype: Mapped[str] = mapped_column(String(50))
+    actor: Mapped[str] = mapped_column(Text, default="")
+    region: Mapped[str] = mapped_column(String(200), default="")
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    importance: Mapped[str] = mapped_column(String(10), default="medium")
+    verification_status: Mapped[str] = mapped_column(String(10), default="draft", index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    article_id: Mapped[int | None] = mapped_column(
+        ForeignKey("articles.id", ondelete="SET NULL"), nullable=True
+    )
+    group_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    merge_key: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class MilitaryWeapon(Base):
+    __tablename__ = "military_weapons"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(500))
+    original_name: Mapped[str] = mapped_column(String(500), default="")
+    origin: Mapped[str] = mapped_column(String(200), default="")
+    weapon_type: Mapped[str] = mapped_column(String(100), default="")
+    params_text: Mapped[str] = mapped_column(Text, default="")
+    lifecycle_status: Mapped[str] = mapped_column(String(20), default="研发")
+    merge_key: Mapped[str] = mapped_column(String(64), index=True)
+    verification_status: Mapped[str] = mapped_column(String(10), default="draft", index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    first_seen_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    article_id: Mapped[int | None] = mapped_column(
+        ForeignKey("articles.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class MacroIndicator(Base):
+    __tablename__ = "macro_indicators"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    indicator: Mapped[str] = mapped_column(String(100))
+    region: Mapped[str] = mapped_column(String(200), default="")
+    period: Mapped[str] = mapped_column(String(50))
+    value: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str] = mapped_column(String(20), default="")
+    previous: Mapped[float | None] = mapped_column(Float, nullable=True)
+    forecast: Mapped[float | None] = mapped_column(Float, nullable=True)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    merge_key: Mapped[str] = mapped_column(String(64), index=True)
+    verification_status: Mapped[str] = mapped_column(String(10), default="confirmed", index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.8)
+    article_id: Mapped[int | None] = mapped_column(
+        ForeignKey("articles.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class MarketSnapshot(Base):
+    __tablename__ = "market_snapshots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    asset_code: Mapped[str] = mapped_column(String(50), index=True)
+    asset_name: Mapped[str] = mapped_column(String(100), default="")
+    asset_class: Mapped[str] = mapped_column(String(20), default="index")
+    price: Mapped[float] = mapped_column(Float)
+    change_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    batch_id: Mapped[str] = mapped_column(String(64), index=True)
+    source: Mapped[str] = mapped_column(String(100), default="stooq")
+
+
+class StanceTopic(Base):
+    __tablename__ = "stance_topics"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic: Mapped[str] = mapped_column(String(100), index=True)
+    actor: Mapped[str] = mapped_column(String(200), index=True)
+    stance_text: Mapped[str] = mapped_column(Text)
+    tone: Mapped[str] = mapped_column(String(50), default="中性")
+    stated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    verification_status: Mapped[str] = mapped_column(String(10), default="draft", index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    article_id: Mapped[int | None] = mapped_column(
+        ForeignKey("articles.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Task(Base):

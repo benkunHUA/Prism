@@ -1,10 +1,11 @@
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
 
 from app.models.entities import Category
-from app.repositories import analyses, articles, logs, sources, tasks
+from app.repositories import analyses, articles, indicators, logs, snapshots, sources, tasks
 from app.services.flow import run_task_flow
 from app.services.llm import ChatProvider
 
@@ -35,7 +36,7 @@ def test_collect_flow_writes_log_and_brief(db):
     from app.core.config import Settings
 
     task = _setup(db)
-    settings = Settings(_env_file=None)
+    settings = Settings(_env_file=None, extract_enabled=False)
     result = run_task_flow(
         db, task, client=_feed_client(),
         provider=FakeProvider(settings), settings=settings,
@@ -50,7 +51,7 @@ def test_analyze_flow_creates_daily(db):
     from app.core.config import Settings
 
     _setup(db)
-    settings = Settings(_env_file=None)
+    settings = Settings(_env_file=None, extract_enabled=False)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     articles.insert_articles(db, [
         dict(source_id=None, category="economy", url="https://example.com/x",
@@ -72,7 +73,7 @@ def test_failed_provider_marks_partial(db):
             raise RuntimeError("boom")
 
     _setup(db)
-    settings = Settings(_env_file=None)
+    settings = Settings(_env_file=None, extract_enabled=False)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     articles.insert_articles(db, [
         dict(source_id=None, category="military", url="https://example.com/m",
@@ -84,3 +85,52 @@ def test_failed_provider_marks_partial(db):
     assert result["status"] == "failed"
     assert "military" in " ".join(result["errors"])
     assert logs.list_logs(db)[0].status == "failed"
+
+
+class JsonProvider(ChatProvider):
+    name = "json"
+
+    def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
+        content = messages[-1]["content"]
+        if "你是 economy" in content:
+            payload = {"indicators": [], "policies": []}
+        else:
+            payload = {"events": []}
+        return json.dumps(payload, ensure_ascii=False)
+
+
+def _dual_client(tmp_path: Path):
+    feed = FIXTURE.read_bytes()
+    em_payload = (
+        '{"rc":0,"data":{"total":1,"diff":[{"f12":"SPX","f13":100,'
+        '"f14":"标普500","f2":7584.64,"f3":-0.46}]}}'
+    ).encode()
+
+    def handler(request):
+        if "push2.eastmoney.com" in str(request.url):
+            return httpx.Response(200, content=em_payload)
+        return httpx.Response(200, content=feed)
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
+    from app.core.config import Settings
+
+    sources.create_source(
+        db, name="Fixture", url="https://example.com/rss", feed_type="rss", lang="en",
+        categories=[Category.economy.value, Category.finance.value],
+    )
+    task = tasks.create_task(db, name="采集", kind="collect", category=None, cron="0 */4 * * *")
+    settings = Settings(
+        _env_file=None, extract_enabled=True,
+        market_symbols="index|标普500=100.SPX",
+    )
+    result = run_task_flow(
+        db, task, client=_dual_client(tmp_path), provider=JsonProvider(settings), settings=settings,
+    )
+    assert result["status"] == "success"
+    assert result["new"] == 2
+    assert logs.list_logs(db)[0].status == "success"
+    assert snapshots.latest_batch_id(db) is not None
+    assert len(indicators.list_indicators(db)) == 0  # fixture 正文无指标，提取返回空

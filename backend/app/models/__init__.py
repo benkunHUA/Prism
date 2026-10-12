@@ -8,5 +8,10 @@ from app.models.entities import (  # noqa: F401
     Source,
     SourceCategory,
     Task,
+    MacroIndicator,
+    MarketSnapshot,
+    MilitaryWeapon,
+    StanceTopic,
+    TimelineEvent,
     utcnow,
 )

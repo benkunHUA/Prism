@@ -7,10 +7,12 @@ from fastapi import FastAPI
 from app.api import (  # noqa: F401
     routes_analyses,
     routes_articles,
+    routes_boards,
     routes_categories,
     routes_dashboard,
     routes_health,
     routes_logs,
+    routes_moderations,
     routes_sources,
     routes_tasks,
 )
@@ -51,6 +53,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(routes_sources.router)
     app.include_router(routes_tasks.router)
     app.include_router(routes_logs.router)
+    app.include_router(routes_boards.router)
+    app.include_router(routes_moderations.router)
     return app
 
 

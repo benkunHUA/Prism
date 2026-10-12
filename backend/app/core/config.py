@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     max_content_chars: int = 8000
     max_analysis_input_chars: int = 6000
     top_articles_per_analysis: int = 30
+    extract_enabled: bool = True
+    market_provider: str = "eastmoney"
+    market_symbols: str = ""  # 例："标普500=^spx,美债10Y=10usy.b"
 
 
 @lru_cache
