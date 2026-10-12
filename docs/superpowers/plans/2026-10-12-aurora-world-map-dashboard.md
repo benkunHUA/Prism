@@ -411,7 +411,10 @@ def _seed_article(db, *, category: str, url: str, dedupe: str, hours_ago: int = 
         dict(source_id=source.id, category=category, url=url, title=f"T-{dedupe}",
              summary="s", content_text="", published_at=when, lang="en", dedupe_hash=dedupe),
     ])
-    return next(a for a in articles_repo.list_articles(db) if a.dedupe_hash == dedupe)
+    article = next(a for a in articles_repo.list_articles(db) if a.dedupe_hash == dedupe)
+    article.fetched_at = when
+    db.commit()
+    return article
 
 
 def test_write_regions_dedupes_and_skips_existing(db):
