@@ -31,6 +31,10 @@ describe("formatApiDetail", () => {
     ).toBe("name: field required；too long");
     expect(formatApiDetail(undefined, "Internal Server Error")).toBe("Internal Server Error");
   });
+
+  it("falls back for an empty issue list", () => {
+    expect(formatApiDetail([], "x")).toBe("x");
+  });
 });
 
 describe("compareToForecast", () => {

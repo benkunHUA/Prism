@@ -15,19 +15,19 @@ interface SourceFormProps {
 export default function SourceForm({ form, regions, regionsLoading }: SourceFormProps) {
   return (
     <Form form={form} layout="vertical" initialValues={EMPTY_SOURCE_FORM}>
-      <Form.Item name="name" label="名称" rules={[{ required: true }]}>
-        <Input placeholder="例如 Reuters Business" />
+      <Form.Item name="name" label={SOURCE_TEXT.nameLabel} rules={[{ required: true }]}>
+        <Input placeholder={SOURCE_TEXT.namePlaceholder} />
       </Form.Item>
-      <Form.Item name="url" label="URL" rules={[{ required: true }]}>
-        <Input placeholder="https://example.com/feed" />
+      <Form.Item name="url" label={SOURCE_TEXT.urlLabel} rules={[{ required: true }]}>
+        <Input placeholder={SOURCE_TEXT.urlPlaceholder} />
       </Form.Item>
-      <Form.Item name="feed_type" label="类型" rules={[{ required: true }]}>
+      <Form.Item name="feed_type" label={SOURCE_TEXT.feedTypeLabel} rules={[{ required: true }]}>
         <Select options={FEED_TYPES} />
       </Form.Item>
       <Form.Item
         name="categories"
-        label="板块"
-        rules={[{ required: true, message: "至少选择一个板块" }]}
+        label={SOURCE_TEXT.categoriesLabel}
+        rules={[{ required: true, message: SOURCE_TEXT.categoriesRequired }]}
       >
         <Select mode="multiple" options={CATEGORY_OPTIONS} />
       </Form.Item>
@@ -48,10 +48,10 @@ export default function SourceForm({ form, regions, regionsLoading }: SourceForm
           options={regionSelectOptions(regions)}
         />
       </Form.Item>
-      <Form.Item name="lang" label="语言" rules={[{ required: true }]}>
+      <Form.Item name="lang" label={SOURCE_TEXT.langLabel} rules={[{ required: true }]}>
         <Select options={LANGS} />
       </Form.Item>
-      <Form.Item name="enabled" label="启用" valuePropName="checked">
+      <Form.Item name="enabled" label={SOURCE_TEXT.enabledLabel} valuePropName="checked">
         <Switch />
       </Form.Item>
     </Form>

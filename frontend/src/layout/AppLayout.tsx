@@ -10,7 +10,7 @@ import { useAsync } from "../hooks/useAsync";
 import ModerationDrawer from "./ModerationDrawer";
 
 const NAV_ITEMS = [
-  { key: "/", label: "仪表盘" },
+  { key: "/", label: "看板" },
   { key: "/politics", label: "政治" },
   { key: "/economy", label: "经济" },
   { key: "/finance", label: "金融" },
