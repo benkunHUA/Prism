@@ -1,6 +1,7 @@
 # backend/tests/test_article_regions.py
 from datetime import datetime, timedelta, timezone
 
+from app.models.entities import Article
 from app.repositories import article_regions as regions_repo
 from app.repositories import articles as articles_repo
 from app.repositories import sources as sources_repo
@@ -16,7 +17,7 @@ def _seed_article(db, *, category: str, url: str, dedupe: str, hours_ago: int = 
         dict(source_id=source.id, category=category, url=url, title=f"T-{dedupe}",
              summary="s", content_text="", published_at=when, lang="en", dedupe_hash=dedupe),
     ])
-    article = next(a for a in articles_repo.list_articles(db) if a.dedupe_hash == dedupe)
+    article = db.query(Article).filter(Article.dedupe_hash == dedupe).one()
     article.fetched_at = when
     db.commit()
     return article
@@ -61,3 +62,25 @@ def test_list_articles_by_region_filters_category(db):
     finance_only = regions_repo.list_articles_by_region(db, code="us", since=since,
                                                        category="finance")
     assert [a.id for a in finance_only] == [second.id]
+
+
+def test_write_regions_with_empty_codes_writes_nothing(db):
+    article = _seed_article(db, category="politics", url="https://example.com/c1", dedupe="c1")
+    assert regions_repo.write_regions(db, article_id=article.id, codes=[]) == 0
+    assert regions_repo.codes_for_article(db, article.id) == set()
+    assert regions_repo.article_ids_with_regions(db, []) == set()
+
+
+def test_list_articles_by_region_honours_limit_and_offset(db):
+    older = _seed_article(db, category="politics", url="https://example.com/d1", dedupe="d1",
+                          hours_ago=3)
+    newer = _seed_article(db, category="politics", url="https://example.com/d2", dedupe="d2",
+                          hours_ago=1)
+    regions_repo.write_regions(db, article_id=older.id, codes=["us"])
+    regions_repo.write_regions(db, article_id=newer.id, codes=["us"])
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
+
+    assert [a.id for a in regions_repo.list_articles_by_region(
+        db, code="us", since=since, limit=1)] == [newer.id]
+    assert [a.id for a in regions_repo.list_articles_by_region(
+        db, code="us", since=since, limit=1, offset=1)] == [older.id]

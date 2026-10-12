@@ -2,6 +2,7 @@ from app.models.entities import (  # noqa: F401
     Analysis,
     AnalysisArticle,
     Article,
+    ArticleRegion,
     Category,
     KVSetting,
     RunLog,

@@ -112,9 +112,12 @@ REGION_MAP: dict[str, dict] = {r["code"]: r for r in REGIONS}
 REGION_NAMES: dict[str, str] = {r["code"]: r["name_zh"] for r in REGIONS}
 
 
-def _build_alias_tables() -> tuple[dict[str, str], list[tuple[str, str]], list[tuple[re.Pattern[str], str]]]:
+def _build_alias_tables() -> tuple[dict[str, str], list[tuple[re.Pattern[str], str]]]:
     exact: dict[str, str] = {}
     for region in REGIONS:
+        # code 自身可回环：normalize_region("south_china_sea") == "south_china_sea"，
+        # 否则 "China" 会从 code 里的 _china_ 命中 cn；code 先于别名登记，保证优先。
+        exact[region["code"]] = region["code"]
         for alias in region["aliases"]:
             key = alias.strip().lower()
             if key and key not in exact:
@@ -125,15 +128,15 @@ def _build_alias_tables() -> tuple[dict[str, str], list[tuple[str, str]], list[t
          if len(a.strip()) >= 3),
         key=lambda pair: -len(pair[0]),
     )
-    cjk = [(alias, code) for alias, code in substrings if not alias.isascii()]
-    latin = [
+    # 一份正则覆盖全部别名：CJK 别名不含 [a-z0-9]，词边界行为与裸子串包含一致
+    patterns = [
         (re.compile(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])"), code)
-        for alias, code in substrings if alias.isascii()
+        for alias, code in substrings
     ]
-    return exact, cjk, latin
+    return exact, patterns
 
 
-_EXACT, _CJK_SUB, _LATIN_SUB = _build_alias_tables()
+_EXACT, _ALIAS_SUB = _build_alias_tables()
 
 
 def normalize_region(text: str | None) -> str | None:
@@ -146,10 +149,7 @@ def normalize_region(text: str | None) -> str | None:
     hit = _EXACT.get(key)
     if hit:
         return hit
-    for alias, code in _CJK_SUB:
-        if alias in key:
-            return code
-    for pattern, code in _LATIN_SUB:
+    for pattern, code in _ALIAS_SUB:
         if pattern.search(key):
             return code
     return None
