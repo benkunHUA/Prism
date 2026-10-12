@@ -1,13 +1,17 @@
 import { http } from "./client";
+import type { GeoWindow } from "../constants/geo";
 import type {
   AnalysisDetail,
   AnalysisSummary,
   ArticleItem,
   CategoryOverview,
   DashboardSummary,
+  GeoOverview,
   IndicatorItem,
   ModerationItem,
   ModerationPatch,
+  RegionArticles,
+  RegionOption,
   RunLogItem,
   RunResult,
   SnapshotItem,
@@ -31,6 +35,10 @@ function queryString(params: Record<string, QueryValue>): string {
 
 export const api = {
   dashboard: () => http.get<DashboardSummary>("/dashboard/summary"),
+  geo: (window: GeoWindow) => http.get<GeoOverview>(`/dashboard/geo${queryString({ window })}`),
+  regions: () => http.get<{ items: RegionOption[] }>("/regions"),
+  regionArticles: (code: string, params: { window: GeoWindow; category?: string; limit?: number }) =>
+    http.get<RegionArticles>(`/regions/${code}/articles${queryString(params)}`),
   categories: () => http.get<CategoryOverview[]>("/categories"),
   categoryAnalyses: (category: string, kind = "daily") =>
     http.get<{ items: AnalysisSummary[] }>(

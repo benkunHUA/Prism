@@ -35,6 +35,7 @@ const EMPTY_FORM: SourceInput = {
   url: "",
   feed_type: "rss",
   lang: "en",
+  region: "",
   enabled: true,
   categories: [],
 };

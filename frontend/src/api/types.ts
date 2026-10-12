@@ -151,6 +151,7 @@ export interface SourceItem {
   url: string;
   feed_type: string;
   lang: string;
+  region: string;
   enabled: boolean;
   categories: string[];
   last_ok_at: string | null;
@@ -163,6 +164,7 @@ export interface SourceInput {
   url: string;
   feed_type: string;
   lang: string;
+  region: string;
   enabled: boolean;
   categories: string[];
 }
@@ -204,4 +206,33 @@ export interface RunLogItem {
   fetched_count: number;
   new_count: number;
   error: string | null;
+}
+
+export interface GeoRegion {
+  code: string;
+  name: string;
+  lng: number;
+  lat: number;
+  count: number;
+  by_category: Record<string, number>;
+}
+
+export interface GeoOverview {
+  window: string;
+  window_start: string;
+  total: number;
+  untagged: number;
+  regions: GeoRegion[];
+}
+
+export interface RegionArticles {
+  region: string;
+  name: string;
+  window: string;
+  items: ArticleItem[];
+}
+
+export interface RegionOption {
+  code: string;
+  name: string;
 }
