@@ -27,6 +27,29 @@ def _eastmoney_client():
     )
 
 
+def _redirecting_eastmoney_client():
+    """模拟 push2 把请求 302 到 push2delay 的真实行为。"""
+    payload = EM_FIXTURE.read_bytes()
+
+    def handler(request):
+        if "push2delay" in request.url.host:
+            return httpx.Response(200, content=payload)
+        return httpx.Response(
+            302, headers={"Location": "https://push2delay.eastmoney.com/api/qt/ulist.np/get"}
+        )
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_eastmoney_provider_follows_redirect():
+    rows, errors = EastmoneyProvider().fetch(
+        _redirecting_eastmoney_client(), ["index|标普500=100.SPX"]
+    )
+    assert errors == []
+    assert [r["asset_code"] for r in rows] == ["100.SPX"]
+    assert rows[0]["price"] == 7584.64
+
+
 def test_eastmoney_provider_batches_and_reports_missing():
     rows, errors = EastmoneyProvider().fetch(
         _eastmoney_client(),

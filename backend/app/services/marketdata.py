@@ -16,6 +16,9 @@ EASTMONEY_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
     "Referer": "https://quote.eastmoney.com/",
 }
+# push2 在非交易时段/限流时会把请求 302 到 push2delay，必须跟随重定向，
+# 否则拿到的是空响应体，解析时报 JSONDecodeError。
+FOLLOW_REDIRECTS = True
 
 
 def _parse_spec(spec: str) -> tuple[str, str, str]:
@@ -27,6 +30,39 @@ def _parse_spec(spec: str) -> tuple[str, str, str]:
     else:
         asset_class, name = "index", head
     return asset_class.strip(), name.strip(), code
+
+
+def parse_quote_index(diff: list[dict]) -> dict[str, dict]:
+    """把行情接口返回的 diff 整理成 {secid: {name, price, change_pct}}；无报价的不收录。"""
+    quotes: dict[str, dict] = {}
+    for item in diff:
+        price = item.get("f2")
+        if price in (None, "-"):
+            continue
+        change = item.get("f3")
+        quotes[f"{item.get('f13')}.{item.get('f12')}"] = {
+            "name": item.get("f14", ""),
+            "price": float(price),
+            "change_pct": None if change in (None, "-") else float(change),
+        }
+    return quotes
+
+
+def fetch_quotes(client: httpx.Client, secids: list[str],
+                 *, timeout: float = 15.0) -> dict[str, dict]:
+    """单次请求取回一批 secid 的报价，返回 {secid: {name, price, change_pct}}。"""
+    codes = [code for code in secids if code]
+    if not codes:
+        return {}
+    resp = client.get(
+        EASTMONEY_URL,
+        params={"fltt": "2", "fields": "f12,f13,f14,f2,f3", "secids": ",".join(codes)},
+        headers=EASTMONEY_HEADERS,
+        timeout=timeout,
+        follow_redirects=FOLLOW_REDIRECTS,
+    )
+    resp.raise_for_status()
+    return parse_quote_index((resp.json().get("data") or {}).get("diff") or [])
 
 
 class EastmoneyProvider:
@@ -41,33 +77,19 @@ class EastmoneyProvider:
         errors: list[str] = []
         if not parsed:
             return rows, errors
-        resp = client.get(
-            EASTMONEY_URL,
-            params={
-                "fltt": "2",
-                "fields": "f12,f13,f14,f2,f3",
-                "secids": ",".join(code for _, _, code in parsed),
-            },
-            headers=EASTMONEY_HEADERS,
-            timeout=15.0,
-        )
-        resp.raise_for_status()
-        diff = (resp.json().get("data") or {}).get("diff") or []
-        by_code = {f"{item['f13']}.{item['f12']}": item for item in diff}
+        quotes = fetch_quotes(client, [code for _, _, code in parsed])
         for asset_class, name, code in parsed:
-            item = by_code.get(code)
-            price = item.get("f2") if item else None
-            if not item or price in (None, "-"):
+            quote = quotes.get(code)
+            if quote is None:
                 errors.append(f"{code} 未返回数据")
                 continue
-            change = item.get("f3")
             rows.append(
                 {
                     "asset_code": code,
-                    "asset_name": name or item.get("f14", ""),
+                    "asset_name": name or quote["name"],
                     "asset_class": asset_class,
-                    "price": float(price),
-                    "change_pct": None if change in (None, "-") else float(change),
+                    "price": quote["price"],
+                    "change_pct": quote["change_pct"],
                     "source": self.name,
                 }
             )
@@ -86,7 +108,10 @@ class StooqCsvProvider:
         for spec in specs:
             asset_class, name, code = _parse_spec(spec)
             try:
-                resp = client.get(STOOQ_URL.format(symbol=code), timeout=15.0)
+                resp = client.get(
+                    STOOQ_URL.format(symbol=code), timeout=15.0,
+                    follow_redirects=FOLLOW_REDIRECTS,
+                )
                 resp.raise_for_status()
                 reader = csv.DictReader(io.StringIO(resp.text))
                 data = next(reader, None)

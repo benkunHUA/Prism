@@ -60,6 +60,7 @@ export const ASSET_CLASSES = [
   { label: "利率", value: "rate" },
   { label: "外汇", value: "fx" },
   { label: "商品", value: "commodity" },
+  { label: "股票", value: "equity" },
   { label: "波动率", value: "volatility" },
   { label: "加密资产", value: "crypto" },
 ];

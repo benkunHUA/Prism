@@ -34,7 +34,10 @@ class Settings(BaseSettings):
     top_articles_per_analysis: int = 30
     extract_enabled: bool = True
     market_provider: str = "eastmoney"
-    market_symbols: str = ""  # 例："标普500=^spx,美债10Y=10usy.b"
+    # 格式 "类别|名称=代码"，逗号分隔；eastmoney 用 secid，stooq 用其符号。
+    # 类别取值与前端 ASSET_CLASSES 对齐：index/rate/fx/commodity/volatility/crypto/equity
+    # 例："index|美元指数=100.UDI,rate|美债10年期收益率=171.US10Y"
+    market_symbols: str = ""
 
 
 @lru_cache

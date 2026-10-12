@@ -68,14 +68,55 @@ LLM_EXTRACT_MAX_TOKENS=4000
 - `GET /api/politics/stances`、`GET /api/finance/snapshots`
 - `GET /api/moderations`、`PATCH /api/moderations/{type}/{id}`（confirm/edit/reject）
 
-## 行情快照（默认关闭）
+## 行情快照
 
-在 `backend/.env` 中启用（默认行情源为东方财富批量接口）：
+在 `backend/.env` 中填入标的即启用（默认行情源为东方财富批量接口，一次请求取回全部标的）：
 
 ```dotenv
 MARKET_PROVIDER=eastmoney
-MARKET_SYMBOLS=index|标普500=100.SPX,index|道琼斯=100.DJIA,index|纳斯达克=100.NDX,index|美元指数=100.UDI,commodity|伦敦金=101.GC00Y,commodity|纽约原油=101.CL00Y
+MARKET_SYMBOLS=index|美元指数=100.UDI,index|标普500=100.SPX,index|恒生指数=100.HSI,index|上证指数=1.000001,rate|美债10年期收益率=171.US10Y,fx|离岸人民币=133.USDCNH,commodity|COMEX黄金=101.GC00Y,commodity|NYMEX原油=102.CL00Y,equity|苹果=105.AAPL,equity|腾讯控股=116.00700
 ```
+
+格式为 `类别|名称=东方财富secid`，逗号分隔；`MARKET_SYMBOLS` 留空即关闭行情快照。
+类别取值与前端筛选下拉一致：`index` / `rate` / `fx` / `commodity` / `volatility` / `crypto` / `equity`。
+仓库里的 `.env.example` 已填好一组逐个实测可用的标的，可直接复制。
+
+### 怎么拿到真实可用的 secid
+
+secid 就是 `市场号.代码`，例如 `100.SPX`、`1.000001`、`116.00700`。不用背市场号，仓库自带查询脚本，
+一次完成「按关键词搜候选 → 回验能不能取到报价 → 输出可粘贴片段」：
+
+```bash
+cd backend
+uv run python scripts/find_secid.py 原油 --class commodity
+uv run python scripts/find_secid.py 黄金 白银 --class commodity --count 5
+```
+
+输出形如：
+
+```
+== 原油 ==
+  secid         名称                    类型      报价
+  112.B00Y      布伦特原油当月连续      期货      107.16 +2.33%
+  102.CL00Y     NYMEX原油               期货      93.92 +2.25%
+  0.000956      中原油气                深A       0.0 +0.00%
+
+  可粘贴片段（类别=commodity，多个之间用英文逗号连接）：
+    commodity|布伦特原油当月连续=112.B00Y
+    commodity|NYMEX原油=102.CL00Y
+```
+
+「报价」列拿到价格才说明这个 secid 能用；脚本会把没有报价的候选从片段里剔除。
+关键词搜到的第一个结果不一定是你想要的标的（搜"黄金"第一个是黄金板块 `90.BK1617`，
+指数/期货要往后找），所以务必看「报价」列确认。
+
+常用市场号：`1` 沪市、`0` 深市、`100` 国际指数、`101` COMEX 金属、`102` NYMEX 能源、`112` IPE 布伦特原油、`105` 纳斯达克、`106` 纽交所、`107` 美交所、`116` 港股、`119`/`133` 外汇、`171` 美债收益率。
+
+已知坑：
+
+- `push2` 在非交易时段或限流时会把请求 302 到 `push2delay.eastmoney.com`，代码已开启跟随重定向，否则会拿到空响应体；
+- 直接用 `curl` 调这两个接口容易被风控返回空响应（`http=000`），中文关键词还会因为没 URL 编码报 400，建议用上面的脚本；
+- 常见误写：纽约原油是 `102.CL00Y`，不是 `101.CL00Y`。
 
 实测 Stooq 免费接口已失效、Yahoo 在当前网络不可用；`MARKET_PROVIDER=stooq` 仍保留为备选。行情抓取失败只记日志，不影响采集/分析。
 
