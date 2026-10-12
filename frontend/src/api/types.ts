@@ -1,3 +1,5 @@
+import type { GeoWindow } from "../constants/geo";
+
 export interface DashboardSummary {
   today_articles: number;
   today_analyses: number;
@@ -218,7 +220,7 @@ export interface GeoRegion {
 }
 
 export interface GeoOverview {
-  window: string;
+  window: GeoWindow;
   window_start: string;
   total: number;
   untagged: number;
@@ -228,7 +230,7 @@ export interface GeoOverview {
 export interface RegionArticles {
   region: string;
   name: string;
-  window: string;
+  window: GeoWindow;
   items: ArticleItem[];
 }
 

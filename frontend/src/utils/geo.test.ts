@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { GeoRegion } from "../api/types";
-import { HEAT_COLORS } from "../constants/geo";
+import { HEAT_COLORS, POINT_SIZE } from "../constants/geo";
 import { buildHeatScale, countFor, filterRegions, pointSize, regionPoints } from "./geo";
 
 function region(code: string, byCategory: Record<string, number>): GeoRegion {
@@ -28,6 +28,10 @@ describe("countFor / filterRegions", () => {
     expect(filtered.map((item) => item.code)).toEqual(["il"]);
     expect(filtered[0].count).toBe(6);
   });
+
+  it("全部被过滤时返回空数组", () => {
+    expect(filterRegions([region("il", { military: 6 })], ["economy"])).toEqual([]);
+  });
 });
 
 describe("buildHeatScale", () => {
@@ -46,6 +50,10 @@ describe("buildHeatScale", () => {
     const scale = buildHeatScale([1, 2, 3, 4, 5]);
     expect(scale(3)).toBe(HEAT_COLORS[Math.round((2 / 4) * (HEAT_COLORS.length - 1))]);
   });
+
+  it("超出已知值的数落最深档", () => {
+    expect(buildHeatScale([1, 2, 3])(99)).toBe(HEAT_COLORS[HEAT_COLORS.length - 1]);
+  });
 });
 
 describe("regionPoints", () => {
@@ -56,6 +64,21 @@ describe("regionPoints", () => {
     expect(points[0]).toMatchObject({ code: "il", count: 3 });
     expect(points[1].lng).not.toBe(points[0].lng);
   });
+
+  it("地区为空或板块为空时返回空数组", () => {
+    expect(regionPoints([], ["politics"])).toEqual([]);
+    expect(regionPoints([region("il", { politics: 3, military: 6 })], [])).toEqual([]);
+  });
+
+  it("同一输入下每个点的 key 两两不重复", () => {
+    const points = regionPoints(
+      [region("il", { politics: 3, military: 6 }), region("us", { politics: 1, military: 2 })],
+      ["politics", "economy", "finance", "military"],
+    );
+    const keys = points.map((point) => point.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toContain("il-military");
+  });
 });
 
 describe("pointSize", () => {
@@ -64,5 +87,6 @@ describe("pointSize", () => {
     expect(pointSize(10, 10)).toBe(14);
     expect(pointSize(5, 10)).toBeGreaterThan(5);
     expect(pointSize(3, 1)).toBe(5);
+    expect(pointSize(3, 0)).toBe(POINT_SIZE.min);
   });
 });

@@ -32,6 +32,6 @@ export const GEO_TEXT = {
   untagged: (count: number) => `未定位 ${count} 条`,
   rankingTitle: "地区榜",
   backToRanking: "← 返回地区榜",
-  regionTitle: (name: string, window: string) => `${name} · 近 ${window}`,
+  regionTitle: (name: string, window: GeoWindow) => `${name} · 近 ${windowLabel(window)}`,
   legendHint: "点击图例可只看某一类",
 } as const;

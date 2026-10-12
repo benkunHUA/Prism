@@ -2,8 +2,9 @@ import type { GeoRegion } from "../api/types";
 import { CATEGORY_OFFSETS, HEAT_COLORS, POINT_SIZE } from "../constants/geo";
 
 export interface MapPoint {
+  key: string;
   code: string;
-  name: string;
+  regionName: string;
   category: string;
   count: number;
   lng: number;
@@ -44,8 +45,9 @@ export function regionPoints(regions: GeoRegion[], categories: string[]): MapPoi
       if (count <= 0) continue;
       const offset = CATEGORY_OFFSETS[key as keyof typeof CATEGORY_OFFSETS] ?? [0, 0];
       points.push({
+        key: `${region.code}-${key}`,
         code: region.code,
-        name: region.name,
+        regionName: region.name,
         category: key,
         count,
         lng: region.lng + offset[0],
