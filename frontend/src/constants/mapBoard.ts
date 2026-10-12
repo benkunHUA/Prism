@@ -8,6 +8,7 @@ export const MAP_BOARD_STYLE = {
   pointBorderColor: "#fff",
   pointBorderWidth: 0.6,
   fallbackColor: "#64748b",
+  mapPadding: 8,
   stripPadding: 10,
 } as const;
 
