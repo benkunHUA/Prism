@@ -23,7 +23,8 @@ def _parse_citation_ids(content_md: str, max_id: int) -> list[int]:
     section = content_md.rsplit("资料来源", 1)[-1]
     ids = []
     for line in section.splitlines():
-        m = re.match(r"^\s*[-*]?\s*(\d+)[.、)）]?\s*", line)
+        # 兼容 "- 1 站点 · 标题"、"- [1] 站点 · 标题"、"- 1. 站点 · 标题" 等写法
+        m = re.match(r"^\s*[-*]?\s*\[?(\d+)[\]\.、)）]?\s*", line)
         if not m:
             continue
         n = int(m.group(1))

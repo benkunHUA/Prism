@@ -128,3 +128,17 @@ def test_daily_uses_configured_token_budget(db):
     provider = CapturingProvider(settings, "## 数据要点\n内容\n\n## 资料来源\n- 1 S · Fed moves")
     generate_daily(db, "economy", provider, settings, until=now + timedelta(seconds=5))
     assert provider.last_max_tokens == 12345
+
+
+def test_parse_citation_ids_accepts_bracket_and_plain_numbers():
+    from app.services.analyzer import _parse_citation_ids
+
+    md = (
+        "## 资料来源\n"
+        "- [1] 站点 · 标题一\n"
+        "- 2. 站点 · 标题二\n"
+        "- 3、站点 · 标题三\n"
+        "- [99] 越界条目\n"
+        "补充说明：无编号的行忽略\n"
+    )
+    assert _parse_citation_ids(md, 5) == [1, 2, 3]
