@@ -2053,12 +2053,12 @@ import MapBoardPage from "./pages/MapBoardPage";
 git rm frontend/src/pages/DashboardPage.tsx
 ```
 
-- [ ] **Step 3: 跑构建**
+- [x] **Step 3: 跑构建**
 
 Run: `cd frontend && npm run build`
 Expected: PASS（类型检查 + 产物构建；若报 `DashboardPage` 仍被引用，检查 `App.tsx` 是否漏改）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/pages/MapBoardPage.tsx frontend/src/App.tsx
