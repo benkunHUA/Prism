@@ -1482,7 +1482,7 @@ git commit -m "feat(frontend): 地区接口类型与端点"
 
 说明：组件是渲染层，仓库的 vitest 只跑纯函数（`vite.config.ts` 里 `include: ["src/**/*.test.ts"]`、environment=node），所以本任务用类型检查 + 手动查看验证，不给组件补测试。
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/WorldMap.tsx
@@ -1613,12 +1613,12 @@ export default function WorldMap({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS（若 `worldGeo as never` 仍报错，改成 `echarts.registerMap("world", worldGeo as unknown as Parameters<typeof echarts.registerMap>[1])`）
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/WorldMap.tsx
@@ -1632,7 +1632,7 @@ git commit -m "feat(frontend): 双层世界地图组件"
 **Files:**
 - Create: `frontend/src/components/map/MapLegend.tsx`
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/MapLegend.tsx
@@ -1705,12 +1705,12 @@ export default function MapLegend({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/MapLegend.tsx
@@ -1724,7 +1724,7 @@ git commit -m "feat(frontend): 地图图例与时间窗切换"
 **Files:**
 - Create: `frontend/src/components/map/RegionPanel.tsx`
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/RegionPanel.tsx
@@ -1831,12 +1831,12 @@ export default function RegionPanel({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/RegionPanel.tsx
@@ -1852,7 +1852,7 @@ git commit -m "feat(frontend): 地区榜与地区新闻两态面板"
 
 作用：`DashboardPage` 删除后，原四张板块卡的「最新日报标题 + 近 24h 条数」由这条 chip 承接。
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/CategoryStrip.tsx
@@ -1901,12 +1901,12 @@ export default function CategoryStrip({ overview }: Props) {
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/CategoryStrip.tsx
@@ -1922,7 +1922,7 @@ git commit -m "feat(frontend): 板块状态 chip 条"
 - Modify: `frontend/src/App.tsx`
 - Delete: `frontend/src/pages/DashboardPage.tsx`
 
-- [ ] **Step 1: 写页面**
+- [x] **Step 1: 写页面**
 
 ```tsx
 // frontend/src/pages/MapBoardPage.tsx
@@ -2033,7 +2033,7 @@ export default function MapBoardPage() {
 }
 ```
 
-- [ ] **Step 2: 换路由、删旧页面**
+- [x] **Step 2: 换路由、删旧页面**
 
 `frontend/src/App.tsx`：把 `import DashboardPage from "./pages/DashboardPage";` 换成
 
