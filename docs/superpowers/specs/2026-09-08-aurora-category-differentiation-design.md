@@ -106,6 +106,8 @@ subtype 收敛词表：
 
 ## 6. 每日报告模板（四套）
 
+> 实现状态：R2 已实现（`backend/app/services/reports/` 定义栏目与提示词，`analyzer.py` 调用）。
+
 `analyses(kind=daily)` 的正文结构按板块由对应提示词产出，标题示例：
 
 - 政治：`政治每日综述 · 2026-09-08`
