@@ -24,6 +24,7 @@ class ChatProvider:
 
 class _OpenAICompatProvider(ChatProvider):
     api_key_field = "deepseek_api_key"
+    supports_thinking_switch = False
 
     def complete(self, messages: list[dict], temperature: float = 0.2,
                  max_tokens: int = 4000) -> str:
@@ -37,6 +38,8 @@ class _OpenAICompatProvider(ChatProvider):
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if self.supports_thinking_switch and self.settings.llm_thinking == "disabled":
+            payload["thinking"] = {"type": "disabled"}
         headers = {"Authorization": f"Bearer {key}"}
         last_error: Exception | None = None
         for attempt in range(3):
@@ -73,6 +76,7 @@ class _OpenAICompatProvider(ChatProvider):
 class DeepSeekProvider(_OpenAICompatProvider):
     name = "deepseek"
     api_key_field = "deepseek_api_key"
+    supports_thinking_switch = True
 
 
 class OpenAIProvider(_OpenAICompatProvider):
