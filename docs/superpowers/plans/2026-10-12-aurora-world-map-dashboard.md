@@ -1082,7 +1082,7 @@ git commit -m "feat(backend): 采集源地区字段与地区选项接口"
 - Create: `frontend/scripts/build-world-geo.mjs`、`frontend/src/assets/world.geo.json`、`backend/tests/test_geo_asset.py`
 - Modify: `frontend/package.json`（npm 写入）
 
-- [ ] **Step 1: 安装 ECharts**
+- [x] **Step 1: 安装 ECharts**
 
 ```bash
 cd frontend && npm install echarts
@@ -1090,7 +1090,7 @@ cd frontend && npm install echarts
 
 Expected: `dependencies` 出现 `echarts`
 
-- [ ] **Step 2: 下载 Natural Earth 原始底图**
+- [x] **Step 2: 下载 Natural Earth 原始底图**
 
 ```bash
 curl -fsSL -o /tmp/ne_110m_countries.geojson https://fastly.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson
@@ -1101,7 +1101,7 @@ ls -la /tmp/ne_110m_countries.geojson
 
 Expected: 文件存在，约 0.8 MB（fastly 镜像实测 HTTP 200，content-length 838726）
 
-- [ ] **Step 3: 写转换脚本**
+- [x] **Step 3: 写转换脚本**
 
 ```js
 // frontend/scripts/build-world-geo.mjs
@@ -1144,7 +1144,7 @@ writeFileSync(target, JSON.stringify({ type: "FeatureCollection", features }));
 console.log(`写出 ${features.length} 个国家的边界 → ${target}`);
 ```
 
-- [ ] **Step 4: 生成资产并检查体积**
+- [x] **Step 4: 生成资产并检查体积**
 
 ```bash
 cd frontend && node scripts/build-world-geo.mjs /tmp/ne_110m_countries.geojson
@@ -1153,7 +1153,7 @@ ls -la src/assets/world.geo.json
 
 Expected: 打印国家数量（170 左右），文件 < 200KB
 
-- [ ] **Step 5: 写一致性测试**
+- [x] **Step 5: 写一致性测试**
 
 ```python
 # backend/tests/test_geo_asset.py
@@ -1178,12 +1178,12 @@ def test_asset_covers_every_country():
     )
 ```
 
-- [ ] **Step 6: 跑测试确认通过**
+- [x] **Step 6: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_geo_asset.py -q`
 Expected: PASS（FAIL 说明词表 code 写错或底图缺该国，按报错补齐；110m 缺几何的小国加进 `SMALL_STATES_WITHOUT_GEOMETRY` 豁免，仅失去国家填色）
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/scripts/build-world-geo.mjs frontend/src/assets/world.geo.json backend/tests/test_geo_asset.py
