@@ -1,6 +1,6 @@
 import hashlib
 import re
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 TRACKING_KEYS = {
     "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
@@ -10,6 +10,17 @@ UPDATE_PREFIX = re.compile(
     r"^\s*(update|breaking|live|exclusive|新闻|快讯|更新)\s*[:：\-–—]?\s*", re.IGNORECASE
 )
 WS = re.compile(r"\s+")
+
+
+def absolute_url(base: str, link: str) -> str:
+    """把 RSS/网页里的相对链接补全为绝对链接；非 http(s) 返回空串。"""
+
+    if not link or not link.strip():
+        return ""
+    combined = urljoin(base, link.strip())
+    if urlsplit(combined).scheme not in ("http", "https"):
+        return ""
+    return combined
 
 
 def normalize_url(url: str) -> str:

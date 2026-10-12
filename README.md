@@ -16,6 +16,18 @@ uv run uvicorn app.main:app --reload --port 8000
 
 测试：`cd backend && uv run pytest -q`
 
+## 前端启动
+
+```bash
+cd backend && uv run uvicorn app.main:app --reload --port 8000   # 先起后端
+cd frontend && npm install && npm run dev                        # 打开 http://localhost:5173
+```
+
+开发态 `/api` 由 Vite 代理到 `127.0.0.1:8000`（可用 `frontend/.env` 的 `VITE_API_BASE` 覆盖）。
+校验命令：`npm test`（纯函数单测）、`npm run build`（类型检查 + 产物构建）。
+
+页面：仪表盘、政治/经济/金融/军事四个差异化板块页、源管理、任务管理；顶栏含“待确认”审核抽屉与“手动采集”按钮。
+
 ## 四板块每日报告模板
 
 每类板块的每日分析（`kind=daily`）与快讯（`kind=brief`）使用各自的标题与固定章节，

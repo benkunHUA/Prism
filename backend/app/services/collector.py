@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.repositories import articles as articles_repo
 from app.repositories import sources as sources_repo
-from app.services.urlutil import dedupe_hash, normalize_url
+from app.services.urlutil import absolute_url, dedupe_hash, normalize_url
 
 USER_AGENT = "AuroraBot/0.1 (+personal research tool; polite fetcher)"
 
@@ -54,7 +54,7 @@ def _fetch_full_text(client: httpx.Client, url: str, timeout: float) -> tuple[st
         meta = trafilatura.extract_metadata(resp.text)
         title = (meta.title if meta and meta.title else "").strip()
         return title, text
-    except httpx.HTTPError:
+    except Exception:  # noqa: BLE001 - 富文本抓取失败只是降级，不影响条目入库
         return "", ""
 
 
@@ -67,7 +67,10 @@ def fetch_source(source, settings: Settings, client: httpx.Client) -> tuple[list
         if source.feed_type == "rss":
             feed = feedparser.parse(resp.content)
             for entry in feed.entries[: settings.max_articles_per_source]:
-                url = normalize_url(entry.get("link", ""))
+                resolved = absolute_url(source.url, entry.get("link", ""))
+                if not resolved:
+                    continue
+                url = normalize_url(resolved)
                 title = (entry.get("title") or "").strip()
                 if not url or not title:
                     continue
@@ -113,7 +116,7 @@ def fetch_source(source, settings: Settings, client: httpx.Client) -> tuple[list
                 }
             )
         return items, None
-    except httpx.HTTPError as exc:
+    except Exception as exc:  # noqa: BLE001 - 单源失败降级为错误信息，不中断整轮采集
         return [], f"{type(exc).__name__}: {exc}"
 
 
@@ -141,7 +144,10 @@ def collect_new(db: Session, *, category: str | None = None,
             futures = {pool.submit(fetch_source, snap, settings, client): snap for snap in snapshots}
             for fut in as_completed(futures):
                 snap = futures[fut]
-                results[snap.id] = fut.result()
+                try:
+                    results[snap.id] = fut.result()
+                except Exception as exc:  # noqa: BLE001 - 兜底，避免单源异常拖垮整轮
+                    results[snap.id] = ([], f"{type(exc).__name__}: {exc}")
         fetched = new = 0
         errors: list[str] = []
         source_by_id = {s.id: s for s in sources}
