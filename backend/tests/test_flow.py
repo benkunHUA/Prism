@@ -137,3 +137,28 @@ def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
     assert logs.list_logs(db)[0].status == "success"
     assert snapshots.latest_batch_id(db) is not None
     assert len(indicators.list_indicators(db)) == 0  # fixture 正文无指标，提取返回空
+
+
+def test_collect_flow_backfills_source_region(db):
+    from app.core.config import Settings
+    from app.models.entities import ArticleRegion
+    from app.repositories import article_regions as regions_repo
+
+    source = sources.create_source(
+        db, name="Fixture", url="https://example.com/rss", feed_type="rss", lang="en",
+        categories=[Category.economy.value, Category.finance.value],
+    )
+    source.region = "gb"
+    db.commit()
+    task = tasks.create_task(db, name="采集", kind="collect", category=None,
+                             cron="0 */4 * * *")
+    settings = Settings(_env_file=None, extract_enabled=False)
+
+    result = run_task_flow(db, task, client=_feed_client(),
+                           provider=FakeProvider(settings), settings=settings)
+
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
+    assert result["status"] == "success"
+    assert regions_repo.untagged_count(db, since) == 0  # 抽取关闭也要有标签
+    assert {row[0] for row in regions_repo.count_by_region(db, since)} == {"gb"}
+    assert {row[0] for row in db.query(ArticleRegion.source).all()} == {"source"}
