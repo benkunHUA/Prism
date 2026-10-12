@@ -2072,7 +2072,7 @@ git commit -m "feat(frontend): 看板改为世界地图页"
 **Files:**
 - Modify: `frontend/src/pages/SourcesPage.tsx`
 
-- [ ] **Step 1: 接上地区字段**
+- [x] **Step 1: 接上地区字段**
 
 1. `EMPTY_FORM` 增加 `region: "",`
 2. `openEdit` 的 `form.setFieldsValue({...})` 增加 `region: item.region,`
@@ -2107,17 +2107,17 @@ git commit -m "feat(frontend): 看板改为世界地图页"
     { title: "地区", dataIndex: "region", width: 100, render: (value: string) => value || "—" },
 ```
 
-- [ ] **Step 2: 跑构建**
+- [x] **Step 2: 跑构建**
 
 Run: `cd frontend && npm run build`
 Expected: PASS
 
-- [ ] **Step 3: 手动确认文件未超 300 行**
+- [x] **Step 3: 手动确认文件未超 300 行**
 
 Run: `wc -l frontend/src/pages/SourcesPage.tsx`
 Expected: < 300（若超过，按 AGENTS.md 把抽屉表单抽成 `components/sources/SourceForm.tsx` 再提交）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/pages/SourcesPage.tsx
@@ -2131,7 +2131,7 @@ git commit -m "feat(frontend): 源管理支持配置来源地区"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: 更新 README**
+- [x] **Step 1: 更新 README**
 
 在「页面：…」那一段补上世界看板与地区词表的说明：
 
@@ -2157,17 +2157,17 @@ git commit -m "feat(frontend): 源管理支持配置来源地区"
 - `GET /api/regions/{code}/articles?window=&category=` 某地区文章列表
 ```
 
-- [ ] **Step 2: 后端全量测试**
+- [x] **Step 2: 后端全量测试**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 全部通过（含既有用例）
 
-- [ ] **Step 3: 前端全量校验**
+- [x] **Step 3: 前端全量校验**
 
 Run: `cd frontend && npm test && npm run build`
 Expected: 单测通过、构建通过
 
-- [ ] **Step 4: 手动验收**
+- [x] **Step 4: 手动验收**
 
 ```bash
 cd backend && uv run uvicorn app.main:app --reload --port 8000
@@ -2182,7 +2182,7 @@ cd frontend && npm run dev
 - 点图例里的「军事」→ 只剩军事点与被重算后的填色；再点回来恢复
 - 切到「7 天」→ 地图数据刷新，右栏重置回地区榜
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add README.md
