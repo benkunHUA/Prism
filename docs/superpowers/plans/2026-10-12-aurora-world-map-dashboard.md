@@ -992,7 +992,7 @@ git commit -m "feat(backend): 地区聚合接口与地区文章接口"
 - Modify: `backend/app/repositories/sources.py`、`backend/app/api/routes_sources.py`、`backend/app/api/routes_geo.py`
 - Test: `backend/tests/test_api_sources.py`（文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 def test_source_region_roundtrip(client):
@@ -1013,12 +1013,12 @@ def test_source_region_roundtrip(client):
     assert {"code": "gaza", "name": "加沙"} in options
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_api_sources.py -q -k region`
 Expected: FAIL —— `KeyError: 'region'`
 
-- [ ] **Step 3: 打通仓储与接口**
+- [x] **Step 3: 打通仓储与接口**
 
 `backend/app/repositories/sources.py` 的 `create_source` 增加参数并写入：
 
@@ -1062,12 +1062,12 @@ def list_regions() -> dict:
                       for r in sorted(REGIONS, key=lambda r: r["code"])]}
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_api_sources.py tests/test_api_geo.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/repositories/sources.py backend/app/api/routes_sources.py backend/app/api/routes_geo.py backend/tests/test_api_sources.py
