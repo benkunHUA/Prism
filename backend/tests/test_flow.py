@@ -63,6 +63,9 @@ def test_analyze_flow_creates_daily(db):
     assert result["status"] == "success"
     daily = analyses.latest_analysis(db, "economy", "daily")
     assert daily is not None and daily.status == "success"
+    assert daily.title.startswith("宏观与政策简报 · ")
+    titles = [a.title for a in analyses.list_analyses(db, kind="daily")]
+    assert all("每日分析" not in t for t in titles)
 
 
 def test_failed_provider_marks_partial(db):

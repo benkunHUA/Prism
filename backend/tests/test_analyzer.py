@@ -17,6 +17,12 @@ class FakeProvider(ChatProvider):
         return self.text
 
 
+class CapturingProvider(FakeProvider):
+    def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
+        self.last_prompt = messages[-1]["content"]
+        return self.text
+
+
 def _seed_material(db):
     src = sources.create_source(
         db, name="S", url="https://example.com/rss", feed_type="rss", lang="en",
@@ -73,3 +79,27 @@ def test_generate_daily_empty_returns_none(db):
     settings = Settings(_env_file=None)
     provider = FakeProvider(settings, "irrelevant")
     assert generate_daily(db, "military", provider, settings) is None
+
+
+def test_daily_title_and_prompt_follow_board_spec(db):
+    from app.core.config import Settings
+
+    now = _seed_material(db)
+    settings = Settings(_env_file=None)
+    md = "## 数据要点\n- 结论\n\n## 资料来源\n- 1 S · Fed moves"
+    provider = CapturingProvider(settings, md)
+    result = generate_daily(db, "economy", provider, settings, until=now + timedelta(seconds=5))
+    assert result is not None
+    assert result.title.startswith("宏观与政策简报 · ")
+    assert "## 数据要点" in provider.last_prompt
+    assert "## 资产表现" not in provider.last_prompt
+
+
+def test_brief_title_uses_board_label(db):
+    from app.core.config import Settings
+
+    now = _seed_material(db)
+    settings = Settings(_env_file=None)
+    provider = FakeProvider(settings, "- **事件**：x\n  **影响**：y\n  **来源**：S")
+    result = generate_brief(db, "economy", provider, settings, since=now - timedelta(hours=1))
+    assert result is not None and result.title.startswith("经济快讯 ")
