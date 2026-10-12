@@ -1198,7 +1198,7 @@ git commit -m "feat(frontend): 引入 echarts 与离线世界底图资产"
 - Create: `frontend/src/constants/geo.ts`、`frontend/src/utils/geo.ts`
 - Test: `frontend/src/utils/geo.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```ts
 // frontend/src/utils/geo.test.ts
@@ -1272,12 +1272,12 @@ describe("pointSize", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd frontend && npm test`
 Expected: FAIL —— 解析不到 `./geo`
 
-- [ ] **Step 3: 写常量与纯函数**
+- [x] **Step 3: 写常量与纯函数**
 
 ```ts
 // frontend/src/constants/geo.ts
@@ -1387,12 +1387,12 @@ export function pointSize(count: number, max: number): number {
 }
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd frontend && npm test`
 Expected: PASS（含既有 `format.test.ts`、`moderation.test.ts`）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add frontend/src/constants/geo.ts frontend/src/utils/geo.ts frontend/src/utils/geo.test.ts
@@ -1406,7 +1406,7 @@ git commit -m "feat(frontend): 地区常量与地图纯函数"
 **Files:**
 - Modify: `frontend/src/api/types.ts`、`frontend/src/api/endpoints.ts`
 
-- [ ] **Step 1: 加类型**
+- [x] **Step 1: 加类型**
 
 追加到 `frontend/src/api/types.ts`：
 
@@ -1443,7 +1443,7 @@ export interface RegionOption {
 
 并给 `SourceItem` 与 `SourceInput` 各加一行 `region: string;`。
 
-- [ ] **Step 2: 加端点**
+- [x] **Step 2: 加端点**
 
 `frontend/src/api/endpoints.ts`：顶部 import 增加
 
@@ -1461,12 +1461,12 @@ import type { GeoOverview, RegionArticles, RegionOption } from "./types";
     http.get<RegionArticles>(`/regions/${code}/articles${queryString(params)}`),
 ```
 
-- [ ] **Step 3: 跑类型检查**
+- [x] **Step 3: 跑类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS（若报 `SourceInput` 缺 `region`，在 `SourcesPage.tsx` 的 `EMPTY_FORM` 里补 `region: ""`，Task 16 会接上完整 UI）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/api/types.ts frontend/src/api/endpoints.ts
