@@ -34,7 +34,8 @@ def dashboard_geo(window: str = Query(default="24h"),
             code, {"count": 0, "by_category": {c: 0 for c in ALL_CATEGORIES}}
         )
         entry["count"] += count
-        entry["by_category"][category] = entry["by_category"].get(category, 0) + count
+        if category in entry["by_category"]:
+            entry["by_category"][category] += count
 
     regions = []
     for code, entry in buckets.items():
@@ -59,7 +60,7 @@ def dashboard_geo(window: str = Query(default="24h"),
 @router.get("/regions/{code}/articles")
 def region_articles(code: str, window: str = Query(default="24h"),
                     category: str | None = None,
-                    limit: int = Query(default=30, le=100),
+                    limit: int = Query(default=30, ge=1, le=100),
                     offset: int = Query(default=0, ge=0),
                     db: Session = Depends(get_db)) -> dict:
     info = REGION_MAP.get(code)

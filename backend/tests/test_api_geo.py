@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.core.constants import ALL_CATEGORIES
 from app.models.entities import Category
 from app.repositories import article_regions as regions_repo
 from app.repositories import articles as articles_repo
@@ -62,3 +63,19 @@ def test_region_articles_endpoint(client):
     finance_only = client.get("/api/regions/il/articles?category=finance").json()
     assert [item["title"] for item in finance_only["items"]] == ["红海运费"]
     assert client.get("/api/regions/nowhere/articles").status_code == 404
+
+
+def test_dashboard_geo_by_category_keys_equal_all_categories(client):
+    _seed(client)
+    regions = {
+        r["code"]: r
+        for r in client.get("/api/dashboard/geo?window=24h").json()["regions"]
+    }
+    for code in ("il", "gaza"):
+        assert set(regions[code]["by_category"]) == set(ALL_CATEGORIES)
+    assert regions["gaza"]["by_category"]["finance"] == 0
+
+
+def test_region_articles_limit_bounds(client):
+    assert client.get("/api/regions/il/articles?limit=-1").status_code == 422
+    assert client.get("/api/regions/il/articles?limit=101").status_code == 422
