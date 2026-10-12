@@ -69,3 +69,35 @@ def test_new_domain_tables_crud(tmp_path):
         db.commit()
         assert all(x.id for x in (ev, wp, ind, sn, st))
     engine.dispose()
+
+
+# 追加到 backend/tests/test_models.py 末尾
+def test_article_region_unique_and_cascade(db):
+    import pytest
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.entities import Article, ArticleRegion
+
+    article = Article(category="politics", url="https://example.com/ar", title="T",
+                      summary="", content_text="", lang="en", dedupe_hash="har")
+    db.add(article)
+    db.commit()
+    db.add(ArticleRegion(article_id=article.id, region_code="us"))
+    db.commit()
+
+    db.add(ArticleRegion(article_id=article.id, region_code="us"))
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
+
+    db.delete(article)
+    db.commit()
+    assert db.query(ArticleRegion).count() == 0  # 文章删除时级联清掉标签
+
+
+def test_source_region_defaults_to_empty(db):
+    from app.models.entities import Source
+
+    db.add(Source(name="S", url="https://example.com/sr"))
+    db.commit()
+    assert db.query(Source).first().region == ""
