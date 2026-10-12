@@ -17,6 +17,8 @@ frontend/dist/
 
 # 运行时数据
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
 
 # 可视化讨论伴侣会话
