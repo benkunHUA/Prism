@@ -70,7 +70,7 @@
 - Create: `backend/app/core/geo.py`
 - Test: `backend/tests/test_geo.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_geo.py
@@ -118,12 +118,12 @@ def test_region_table_is_internally_consistent():
         assert region["aliases"]
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_geo.py -q`
 Expected: FAIL —— `ModuleNotFoundError: No module named 'app.core.geo'`
 
-- [ ] **Step 3: 实现词表**
+- [x] **Step 3: 实现词表**
 
 ```python
 # backend/app/core/geo.py
@@ -283,12 +283,12 @@ def normalize_region(text: str | None) -> str | None:
     return None
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_geo.py -q`
 Expected: PASS（5 passed）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/core/geo.py backend/tests/test_geo.py
@@ -303,7 +303,7 @@ git commit -m "feat(backend): 地区词表与归一化"
 - Modify: `backend/app/models/entities.py`
 - Test: `backend/tests/test_models.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # 追加到 backend/tests/test_models.py 末尾
@@ -338,12 +338,12 @@ def test_source_region_defaults_to_empty(db):
     assert db.query(Source).first().region == ""
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_models.py -q`
 Expected: FAIL —— `ImportError: cannot import name 'ArticleRegion'`
 
-- [ ] **Step 3: 加模型与列**
+- [x] **Step 3: 加模型与列**
 
 在 `backend/app/models/entities.py` 的 `Article` 类之后插入新表：
 
@@ -370,12 +370,12 @@ class ArticleRegion(Base):
     region: Mapped[str] = mapped_column(String(32), default="")
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_models.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/models/entities.py backend/tests/test_models.py
@@ -390,7 +390,7 @@ git commit -m "feat(backend): 新增 article_regions 表与来源地区列"
 - Create: `backend/app/repositories/article_regions.py`
 - Test: `backend/tests/test_article_regions.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_article_regions.py
@@ -458,12 +458,12 @@ def test_list_articles_by_region_filters_category(db):
     assert [a.id for a in finance_only] == [second.id]
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_article_regions.py -q`
 Expected: FAIL —— `ModuleNotFoundError: No module named 'app.repositories.article_regions'`
 
-- [ ] **Step 3: 实现仓储**
+- [x] **Step 3: 实现仓储**
 
 ```python
 # backend/app/repositories/article_regions.py
@@ -557,12 +557,12 @@ def list_articles_by_region(db: Session, *, code: str, since: datetime,
     return query.order_by(Article.fetched_at.desc()).offset(offset).limit(limit).all()
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_article_regions.py -q`
 Expected: PASS（3 passed）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/repositories/article_regions.py backend/tests/test_article_regions.py
@@ -1093,11 +1093,13 @@ Expected: `dependencies` 出现 `echarts`
 - [ ] **Step 2: 下载 Natural Earth 原始底图**
 
 ```bash
-curl -fsSL -o /tmp/ne_110m_countries.geojson https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson
+curl -fsSL -o /tmp/ne_110m_countries.geojson https://fastly.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson
 ls -la /tmp/ne_110m_countries.geojson
 ```
 
-Expected: 文件存在，约 3-8 MB
+说明：`raw.githubusercontent.com` 与 `cdn.jsdelivr.net` 在本机不可达，直连失败时用上面的 fastly 镜像（实测 HTTP 200）；备用源是 Natural Earth S3 `https://naturalearth.s3.amazonaws.com/110m_cultural/ne_110m_admin_0_countries.zip`（shapefile zip，需自行转 GeoJSON）。
+
+Expected: 文件存在，约 0.8 MB（fastly 镜像实测 HTTP 200，content-length 838726）
 
 - [ ] **Step 3: 写转换脚本**
 
@@ -1162,18 +1164,24 @@ from app.core.geo import COUNTRIES
 
 ASSET = Path(__file__).resolve().parents[2] / "frontend" / "src" / "assets" / "world.geo.json"
 
+# Natural Earth 110m 缺小国几何：这些地区仍有可点散点（坐标取自词表），只是没有国家填色
+SMALL_STATES_WITHOUT_GEOMETRY = {"sg"}
+
 
 def test_asset_covers_every_country():
     payload = json.loads(ASSET.read_text(encoding="utf-8"))
     codes = {feature["properties"]["name"] for feature in payload["features"]}
-    missing = [country["code"] for country in COUNTRIES if country["code"] not in codes]
-    assert missing == [], f"这些国家在底图里没有几何，地图上会点不出来：{missing}"
+    missing = {country["code"] for country in COUNTRIES if country["code"] not in codes}
+    assert missing <= SMALL_STATES_WITHOUT_GEOMETRY, (
+        "这些国家在底图里既没有几何也没登记豁免，地图上会点不出来："
+        f"{sorted(missing - SMALL_STATES_WITHOUT_GEOMETRY)}"
+    )
 ```
 
 - [ ] **Step 6: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_geo_asset.py -q`
-Expected: PASS（FAIL 说明词表 code 写错或底图缺该国，按报错补齐）
+Expected: PASS（FAIL 说明词表 code 写错或底图缺该国，按报错补齐；110m 缺几何的小国加进 `SMALL_STATES_WITHOUT_GEOMETRY` 豁免，仅失去国家填色）
 
 - [ ] **Step 7: 提交**
 
