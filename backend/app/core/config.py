@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     llm_base_url: str = "https://api.deepseek.com/v1"
     llm_model: str = "deepseek-chat"
+    # 输出预算：推理模型（如 deepseek-v4-flash）的 reasoning 也计入 max_tokens，需要留足余量
+    llm_brief_max_tokens: int = 3000
+    llm_daily_max_tokens: int = 12000
+    llm_extract_max_tokens: int = 4000
 
     collect_cron: str = "0 */4 * * *"
     daily_analysis_hhmm: str = "08:00"

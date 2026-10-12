@@ -7,6 +7,10 @@ import httpx
 from app.core.config import Settings
 
 
+class LLMResponseError(RuntimeError):
+    """LLM 返回内容不可用：空内容，或被 max_tokens 截断。"""
+
+
 class ChatProvider:
     name = "base"
 
@@ -48,7 +52,21 @@ class _OpenAICompatProvider(ChatProvider):
                 continue
             resp.raise_for_status()
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            choice = (data.get("choices") or [{}])[0]
+            content = ((choice.get("message") or {}).get("content") or "").strip()
+            finish_reason = choice.get("finish_reason")
+            if not content:
+                raise LLMResponseError(
+                    f"LLM 返回空内容（finish_reason={finish_reason}，模型={self.settings.llm_model}）。"
+                    "推理模型会把输出预算消耗在 reasoning 上：请调大 LLM_DAILY_MAX_TOKENS / "
+                    "LLM_BRIEF_MAX_TOKENS，或改用非推理模型（如 deepseek-chat）"
+                )
+            if finish_reason == "length":
+                raise LLMResponseError(
+                    f"LLM 输出被 max_tokens 截断（模型={self.settings.llm_model}），"
+                    "已丢弃不完整内容；请调大对应 max_tokens 配置"
+                )
+            return content
         raise RuntimeError(f"LLM 调用失败: {last_error}")
 
 

@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from app.models.entities import Category
 from app.repositories import analyses, articles, sources
 from app.services.analyzer import generate_brief, generate_daily
@@ -20,6 +22,7 @@ class FakeProvider(ChatProvider):
 class CapturingProvider(FakeProvider):
     def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
         self.last_prompt = messages[-1]["content"]
+        self.last_max_tokens = max_tokens
         return self.text
 
 
@@ -103,3 +106,25 @@ def test_brief_title_uses_board_label(db):
     provider = FakeProvider(settings, "- **事件**：x\n  **影响**：y\n  **来源**：S")
     result = generate_brief(db, "economy", provider, settings, since=now - timedelta(hours=1))
     assert result is not None and result.title.startswith("经济快讯 ")
+
+
+def test_empty_llm_output_is_not_stored(db):
+    from app.core.config import Settings
+    from app.repositories import analyses
+
+    now = _seed_material(db)
+    settings = Settings(_env_file=None)
+    provider = FakeProvider(settings, "   ")
+    with pytest.raises(RuntimeError, match="为空"):
+        generate_daily(db, "economy", provider, settings, until=now + timedelta(seconds=5))
+    assert analyses.list_analyses(db, category="economy", kind="daily") == []
+
+
+def test_daily_uses_configured_token_budget(db):
+    from app.core.config import Settings
+
+    now = _seed_material(db)
+    settings = Settings(_env_file=None, llm_daily_max_tokens=12345)
+    provider = CapturingProvider(settings, "## 数据要点\n内容\n\n## 资料来源\n- 1 S · Fed moves")
+    generate_daily(db, "economy", provider, settings, until=now + timedelta(seconds=5))
+    assert provider.last_max_tokens == 12345
