@@ -8,13 +8,20 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.api.serializers import article_out
 from app.core.constants import ALL_CATEGORIES
-from app.core.geo import REGION_MAP
+from app.core.geo import REGION_MAP, REGIONS
 from app.repositories import article_regions as article_regions_repo
 from app.repositories import articles as articles_repo
 
 router = APIRouter(prefix="/api", tags=["geo"])
 
 WINDOW_HOURS = {"24h": 24, "7d": 24 * 7, "30d": 24 * 30}
+
+
+@router.get("/regions")
+def list_regions() -> dict:
+    """地区词表选项，供前端下拉与图例共用，避免在前端复制一份。"""
+    return {"items": [{"code": r["code"], "name": r["name_zh"]}
+                      for r in sorted(REGIONS, key=lambda r: r["code"])]}
 
 
 def window_start(window: str) -> datetime:
