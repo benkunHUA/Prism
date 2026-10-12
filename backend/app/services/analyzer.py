@@ -43,8 +43,11 @@ def generate_brief(db: Session, category: str, provider: ChatProvider,
         return None
     prompt = build_brief_prompt(db, category, materials, settings)
     content = provider.complete(
-        [{"role": "user", "content": prompt}], temperature=0.2, max_tokens=2000
+        [{"role": "user", "content": prompt}], temperature=0.2,
+        max_tokens=settings.llm_brief_max_tokens,
     )
+    if not content.strip():
+        raise RuntimeError(f"{category} 快讯内容为空，已丢弃")
     spec = spec_for(category)
     return analyses_repo.create_analysis(
         db, kind="brief", category=category,
@@ -65,8 +68,11 @@ def generate_daily(db: Session, category: str, provider: ChatProvider,
         return None
     prompt = build_daily_prompt(db, category, materials, settings)
     content = provider.complete(
-        [{"role": "user", "content": prompt}], temperature=0.2, max_tokens=4000
+        [{"role": "user", "content": prompt}], temperature=0.2,
+        max_tokens=settings.llm_daily_max_tokens,
     )
+    if not content.strip():
+        raise RuntimeError(f"{category} 每日分析内容为空，已丢弃")
     spec = spec_for(category)
     analysis = analyses_repo.create_analysis(
         db, kind="daily", category=category,

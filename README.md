@@ -43,6 +43,20 @@ cd frontend && npm install && npm run dev                        # 打开 http:/
 生成提示词会把该板块已确认的结构化条目（武器档案、事件时间线、议题立场、宏观指标、
 市场快照）作为附加素材注入，并要求与新闻材料冲突时以材料为准。
 
+### 模型与输出预算
+
+默认 `LLM_MODEL=deepseek-chat`（非推理模型）。如果换成推理模型（例如 `deepseek-v4-flash`），
+reasoning 也计入 `max_tokens`，需要把输出预算调大，否则会因预算耗尽只拿到推理过程、正文为空：
+
+```dotenv
+LLM_BRIEF_MAX_TOKENS=3000
+LLM_DAILY_MAX_TOKENS=12000
+LLM_EXTRACT_MAX_TOKENS=4000
+```
+
+后端已做保护：LLM 返回空内容或被截断（`finish_reason=length`）时直接报错并丢弃，
+不会把空报告写入分析列表；错误会出现在任务日志里。
+
 ## 板块结构化与审核 API
 
 - `GET /api/categories/{cat}/timeline` 事件时间线

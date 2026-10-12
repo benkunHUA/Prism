@@ -95,7 +95,8 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
         )
         try:
             raw = provider.complete([{"role": "user", "content": prompt}],
-                                    temperature=0.0, max_tokens=2500)
+                                    temperature=0.0,
+                                    max_tokens=settings.llm_extract_max_tokens)
             payload = _parse_json(raw)
             parsed = model_cls.model_validate(payload)
         except Exception:  # noqa: BLE001
