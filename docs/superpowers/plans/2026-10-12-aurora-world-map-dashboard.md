@@ -577,7 +577,7 @@ git commit -m "feat(backend): 地区标签仓储与聚合查询"
 - Modify: `backend/app/services/extraction/schemas.py`、`prompts.py`、`extractor.py`
 - Test: `backend/tests/test_extractor.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # 追加到 backend/tests/test_extractor.py 末尾
@@ -600,12 +600,12 @@ def test_extract_writes_normalized_regions_and_drops_unknown(db):
     assert regions_repo.codes_for_article(db, art.id) == {"il", "gaza"}
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_extractor.py -q`
 Expected: FAIL —— `assert set() == {'il', 'gaza'}`
 
-- [ ] **Step 3: 加字段、改提示词、写库**
+- [x] **Step 3: 加字段、改提示词、写库**
 
 `backend/app/services/extraction/schemas.py`：给 `PoliticsExtraction`、`MilitaryExtraction`、`EconomyExtraction`、`FinanceExtraction` 四个模型各加一个字段（位置放在各自第一个字段之前）：
 
@@ -646,12 +646,12 @@ def _write_regions(db: Session, raw_regions: list[str], article_id: int) -> None
         _write_regions(db, parsed.regions, article.id)
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_extractor.py tests/test_extraction_rules.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/services/extraction backend/tests/test_extractor.py
@@ -667,7 +667,7 @@ git commit -m "feat(backend): 抽取顺带产出文章级地区标签"
 - Modify: `backend/app/services/flow.py`
 - Test: `backend/tests/test_flow.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 先在 `backend/tests/test_flow.py` 顶部把 `from datetime import datetime, timezone` 改成 `from datetime import datetime, timedelta, timezone`，再在文件末尾追加：
 
@@ -697,12 +697,12 @@ def test_collect_flow_backfills_source_region(db):
     assert {row[0] for row in db.query(ArticleRegion.source).all()} == {"source"}
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_flow.py -q -k backfill`
 Expected: FAIL —— `assert 2 == 0`（未打标的文章有 2 篇）
 
-- [ ] **Step 3: 实现兜底并接入流程**
+- [x] **Step 3: 实现兜底并接入流程**
 
 ```python
 # backend/app/services/geo_tag.py
@@ -761,12 +761,12 @@ def backfill_source_regions(db: Session, articles: list[Article]) -> int:
 from app.services.geo_tag import backfill_source_regions
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_flow.py -q`
 Expected: PASS（含既有 5 个用例）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/services/geo_tag.py backend/app/services/flow.py backend/tests/test_flow.py
