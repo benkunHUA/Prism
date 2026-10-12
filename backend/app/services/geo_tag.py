@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from app.core.geo import normalize_region
 from app.models.entities import Article
 from app.repositories import article_regions as article_regions_repo
 
@@ -18,7 +19,7 @@ def backfill_source_regions(db: Session, articles: list[Article]) -> int:
     for article in articles:
         if article.id in tagged:
             continue
-        code = (article.source.region if article.source else "") or ""
+        code = normalize_region(article.source.region if article.source else "")
         if not code:
             continue
         created += article_regions_repo.write_regions(
