@@ -134,6 +134,8 @@ export default function WorldMap({
         {
           type: "scatter" as const,
           coordinateSystem: "geo" as const,
+          // 关掉散点动画：默认入场动画的前几帧 opacity 为 0，取帧时看着像「有底图没有点」
+          animation: false as const,
           symbolSize: (value: number[]) => pointSize(value[2], max),
           itemStyle: {
             opacity: MAP_BOARD_STYLE.pointOpacity,
