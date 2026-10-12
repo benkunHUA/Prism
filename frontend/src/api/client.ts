@@ -1,3 +1,5 @@
+import { formatApiDetail } from "../utils/format";
+
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 export class ApiError extends Error {
@@ -26,8 +28,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) {
-    const detail = (data && (data.detail || data.message)) || response.statusText;
-    throw new ApiError(response.status, String(detail));
+    const detail = data && (data.detail || data.message);
+    throw new ApiError(response.status, formatApiDetail(detail, response.statusText));
   }
   return data as T;
 }
