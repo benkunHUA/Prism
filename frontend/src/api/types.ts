@@ -44,8 +44,10 @@ export interface ArticleItem {
   id: number;
   category: string;
   title: string;
+  title_zh: string | null;
   url: string;
   summary: string | null;
+  summary_zh: string | null;
   source_name: string | null;
   published_at: string | null;
   fetched_at: string;
