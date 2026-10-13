@@ -10,6 +10,7 @@ from app.api import (  # noqa: F401
     routes_boards,
     routes_categories,
     routes_dashboard,
+    routes_geo,
     routes_health,
     routes_logs,
     routes_moderations,
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(routes_logs.router)
     app.include_router(routes_boards.router)
     app.include_router(routes_moderations.router)
+    app.include_router(routes_geo.router)
     return app
 
 

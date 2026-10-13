@@ -70,7 +70,7 @@
 - Create: `backend/app/core/geo.py`
 - Test: `backend/tests/test_geo.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_geo.py
@@ -118,12 +118,12 @@ def test_region_table_is_internally_consistent():
         assert region["aliases"]
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_geo.py -q`
 Expected: FAIL —— `ModuleNotFoundError: No module named 'app.core.geo'`
 
-- [ ] **Step 3: 实现词表**
+- [x] **Step 3: 实现词表**
 
 ```python
 # backend/app/core/geo.py
@@ -283,12 +283,12 @@ def normalize_region(text: str | None) -> str | None:
     return None
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_geo.py -q`
 Expected: PASS（5 passed）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/core/geo.py backend/tests/test_geo.py
@@ -303,7 +303,7 @@ git commit -m "feat(backend): 地区词表与归一化"
 - Modify: `backend/app/models/entities.py`
 - Test: `backend/tests/test_models.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # 追加到 backend/tests/test_models.py 末尾
@@ -338,12 +338,12 @@ def test_source_region_defaults_to_empty(db):
     assert db.query(Source).first().region == ""
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_models.py -q`
 Expected: FAIL —— `ImportError: cannot import name 'ArticleRegion'`
 
-- [ ] **Step 3: 加模型与列**
+- [x] **Step 3: 加模型与列**
 
 在 `backend/app/models/entities.py` 的 `Article` 类之后插入新表：
 
@@ -370,12 +370,12 @@ class ArticleRegion(Base):
     region: Mapped[str] = mapped_column(String(32), default="")
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_models.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/models/entities.py backend/tests/test_models.py
@@ -390,7 +390,7 @@ git commit -m "feat(backend): 新增 article_regions 表与来源地区列"
 - Create: `backend/app/repositories/article_regions.py`
 - Test: `backend/tests/test_article_regions.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_article_regions.py
@@ -411,7 +411,10 @@ def _seed_article(db, *, category: str, url: str, dedupe: str, hours_ago: int = 
         dict(source_id=source.id, category=category, url=url, title=f"T-{dedupe}",
              summary="s", content_text="", published_at=when, lang="en", dedupe_hash=dedupe),
     ])
-    return next(a for a in articles_repo.list_articles(db) if a.dedupe_hash == dedupe)
+    article = next(a for a in articles_repo.list_articles(db) if a.dedupe_hash == dedupe)
+    article.fetched_at = when
+    db.commit()
+    return article
 
 
 def test_write_regions_dedupes_and_skips_existing(db):
@@ -455,12 +458,12 @@ def test_list_articles_by_region_filters_category(db):
     assert [a.id for a in finance_only] == [second.id]
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_article_regions.py -q`
 Expected: FAIL —— `ModuleNotFoundError: No module named 'app.repositories.article_regions'`
 
-- [ ] **Step 3: 实现仓储**
+- [x] **Step 3: 实现仓储**
 
 ```python
 # backend/app/repositories/article_regions.py
@@ -554,12 +557,12 @@ def list_articles_by_region(db: Session, *, code: str, since: datetime,
     return query.order_by(Article.fetched_at.desc()).offset(offset).limit(limit).all()
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_article_regions.py -q`
 Expected: PASS（3 passed）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/repositories/article_regions.py backend/tests/test_article_regions.py
@@ -574,7 +577,7 @@ git commit -m "feat(backend): 地区标签仓储与聚合查询"
 - Modify: `backend/app/services/extraction/schemas.py`、`prompts.py`、`extractor.py`
 - Test: `backend/tests/test_extractor.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # 追加到 backend/tests/test_extractor.py 末尾
@@ -597,12 +600,12 @@ def test_extract_writes_normalized_regions_and_drops_unknown(db):
     assert regions_repo.codes_for_article(db, art.id) == {"il", "gaza"}
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_extractor.py -q`
 Expected: FAIL —— `assert set() == {'il', 'gaza'}`
 
-- [ ] **Step 3: 加字段、改提示词、写库**
+- [x] **Step 3: 加字段、改提示词、写库**
 
 `backend/app/services/extraction/schemas.py`：给 `PoliticsExtraction`、`MilitaryExtraction`、`EconomyExtraction`、`FinanceExtraction` 四个模型各加一个字段（位置放在各自第一个字段之前）：
 
@@ -643,12 +646,12 @@ def _write_regions(db: Session, raw_regions: list[str], article_id: int) -> None
         _write_regions(db, parsed.regions, article.id)
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_extractor.py tests/test_extraction_rules.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/services/extraction backend/tests/test_extractor.py
@@ -664,7 +667,7 @@ git commit -m "feat(backend): 抽取顺带产出文章级地区标签"
 - Modify: `backend/app/services/flow.py`
 - Test: `backend/tests/test_flow.py`（在文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 先在 `backend/tests/test_flow.py` 顶部把 `from datetime import datetime, timezone` 改成 `from datetime import datetime, timedelta, timezone`，再在文件末尾追加：
 
@@ -694,12 +697,12 @@ def test_collect_flow_backfills_source_region(db):
     assert {row[0] for row in db.query(ArticleRegion.source).all()} == {"source"}
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_flow.py -q -k backfill`
 Expected: FAIL —— `assert 2 == 0`（未打标的文章有 2 篇）
 
-- [ ] **Step 3: 实现兜底并接入流程**
+- [x] **Step 3: 实现兜底并接入流程**
 
 ```python
 # backend/app/services/geo_tag.py
@@ -758,12 +761,12 @@ def backfill_source_regions(db: Session, articles: list[Article]) -> int:
 from app.services.geo_tag import backfill_source_regions
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_flow.py -q`
 Expected: PASS（含既有 5 个用例）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/services/geo_tag.py backend/app/services/flow.py backend/tests/test_flow.py
@@ -779,7 +782,7 @@ git commit -m "feat(backend): 来源地区兜底补标"
 - Modify: `backend/app/api/routes_articles.py`、`backend/app/main.py`
 - Test: `backend/tests/test_api_geo.py`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 # backend/tests/test_api_geo.py
@@ -849,12 +852,12 @@ def test_region_articles_endpoint(client):
     assert client.get("/api/regions/nowhere/articles").status_code == 404
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_api_geo.py -q`
 Expected: FAIL —— 404（路由还不存在）
 
-- [ ] **Step 3: 抽出共享序列化器**
+- [x] **Step 3: 抽出共享序列化器**
 
 ```python
 # backend/app/api/serializers.py
@@ -883,7 +886,7 @@ from app.api.serializers import article_out
 
 并把两个用到 `_out(...)` 的地方改成 `article_out(...)`（`get_article` 里那处写成 `{**article_out(article), "content_text": article.content_text}`）。
 
-- [ ] **Step 4: 实现接口**
+- [x] **Step 4: 实现接口**
 
 ```python
 # backend/app/api/routes_geo.py
@@ -968,12 +971,12 @@ def region_articles(code: str, window: str = Query(default="24h"),
     app.include_router(routes_geo.router)
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_api_geo.py tests/test_api_content.py -q`
 Expected: PASS（含既有文章接口用例，验证序列化器抽离无回归）
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add backend/app/api/serializers.py backend/app/api/routes_geo.py \
@@ -989,7 +992,7 @@ git commit -m "feat(backend): 地区聚合接口与地区文章接口"
 - Modify: `backend/app/repositories/sources.py`、`backend/app/api/routes_sources.py`、`backend/app/api/routes_geo.py`
 - Test: `backend/tests/test_api_sources.py`（文件末尾追加）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```python
 def test_source_region_roundtrip(client):
@@ -1010,12 +1013,12 @@ def test_source_region_roundtrip(client):
     assert {"code": "gaza", "name": "加沙"} in options
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd backend && uv run pytest tests/test_api_sources.py -q -k region`
 Expected: FAIL —— `KeyError: 'region'`
 
-- [ ] **Step 3: 打通仓储与接口**
+- [x] **Step 3: 打通仓储与接口**
 
 `backend/app/repositories/sources.py` 的 `create_source` 增加参数并写入：
 
@@ -1059,12 +1062,12 @@ def list_regions() -> dict:
                       for r in sorted(REGIONS, key=lambda r: r["code"])]}
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_api_sources.py tests/test_api_geo.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add backend/app/repositories/sources.py backend/app/api/routes_sources.py backend/app/api/routes_geo.py backend/tests/test_api_sources.py
@@ -1079,7 +1082,7 @@ git commit -m "feat(backend): 采集源地区字段与地区选项接口"
 - Create: `frontend/scripts/build-world-geo.mjs`、`frontend/src/assets/world.geo.json`、`backend/tests/test_geo_asset.py`
 - Modify: `frontend/package.json`（npm 写入）
 
-- [ ] **Step 1: 安装 ECharts**
+- [x] **Step 1: 安装 ECharts**
 
 ```bash
 cd frontend && npm install echarts
@@ -1087,16 +1090,18 @@ cd frontend && npm install echarts
 
 Expected: `dependencies` 出现 `echarts`
 
-- [ ] **Step 2: 下载 Natural Earth 原始底图**
+- [x] **Step 2: 下载 Natural Earth 原始底图**
 
 ```bash
-curl -fsSL -o /tmp/ne_110m_countries.geojson https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson
+curl -fsSL -o /tmp/ne_110m_countries.geojson https://fastly.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson
 ls -la /tmp/ne_110m_countries.geojson
 ```
 
-Expected: 文件存在，约 3-8 MB
+说明：`raw.githubusercontent.com` 与 `cdn.jsdelivr.net` 在本机不可达，直连失败时用上面的 fastly 镜像（实测 HTTP 200）；备用源是 Natural Earth S3 `https://naturalearth.s3.amazonaws.com/110m_cultural/ne_110m_admin_0_countries.zip`（shapefile zip，需自行转 GeoJSON）。
 
-- [ ] **Step 3: 写转换脚本**
+Expected: 文件存在，约 0.8 MB（fastly 镜像实测 HTTP 200，content-length 838726）
+
+- [x] **Step 3: 写转换脚本**
 
 ```js
 // frontend/scripts/build-world-geo.mjs
@@ -1139,7 +1144,7 @@ writeFileSync(target, JSON.stringify({ type: "FeatureCollection", features }));
 console.log(`写出 ${features.length} 个国家的边界 → ${target}`);
 ```
 
-- [ ] **Step 4: 生成资产并检查体积**
+- [x] **Step 4: 生成资产并检查体积**
 
 ```bash
 cd frontend && node scripts/build-world-geo.mjs /tmp/ne_110m_countries.geojson
@@ -1148,7 +1153,7 @@ ls -la src/assets/world.geo.json
 
 Expected: 打印国家数量（170 左右），文件 < 200KB
 
-- [ ] **Step 5: 写一致性测试**
+- [x] **Step 5: 写一致性测试**
 
 ```python
 # backend/tests/test_geo_asset.py
@@ -1159,20 +1164,26 @@ from app.core.geo import COUNTRIES
 
 ASSET = Path(__file__).resolve().parents[2] / "frontend" / "src" / "assets" / "world.geo.json"
 
+# Natural Earth 110m 缺小国几何：这些地区仍有可点散点（坐标取自词表），只是没有国家填色
+SMALL_STATES_WITHOUT_GEOMETRY = {"sg"}
+
 
 def test_asset_covers_every_country():
     payload = json.loads(ASSET.read_text(encoding="utf-8"))
     codes = {feature["properties"]["name"] for feature in payload["features"]}
-    missing = [country["code"] for country in COUNTRIES if country["code"] not in codes]
-    assert missing == [], f"这些国家在底图里没有几何，地图上会点不出来：{missing}"
+    missing = {country["code"] for country in COUNTRIES if country["code"] not in codes}
+    assert missing <= SMALL_STATES_WITHOUT_GEOMETRY, (
+        "这些国家在底图里既没有几何也没登记豁免，地图上会点不出来："
+        f"{sorted(missing - SMALL_STATES_WITHOUT_GEOMETRY)}"
+    )
 ```
 
-- [ ] **Step 6: 跑测试确认通过**
+- [x] **Step 6: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_geo_asset.py -q`
-Expected: PASS（FAIL 说明词表 code 写错或底图缺该国，按报错补齐）
+Expected: PASS（FAIL 说明词表 code 写错或底图缺该国，按报错补齐；110m 缺几何的小国加进 `SMALL_STATES_WITHOUT_GEOMETRY` 豁免，仅失去国家填色）
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/scripts/build-world-geo.mjs frontend/src/assets/world.geo.json backend/tests/test_geo_asset.py
@@ -1187,7 +1198,7 @@ git commit -m "feat(frontend): 引入 echarts 与离线世界底图资产"
 - Create: `frontend/src/constants/geo.ts`、`frontend/src/utils/geo.ts`
 - Test: `frontend/src/utils/geo.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```ts
 // frontend/src/utils/geo.test.ts
@@ -1261,12 +1272,12 @@ describe("pointSize", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `cd frontend && npm test`
 Expected: FAIL —— 解析不到 `./geo`
 
-- [ ] **Step 3: 写常量与纯函数**
+- [x] **Step 3: 写常量与纯函数**
 
 ```ts
 // frontend/src/constants/geo.ts
@@ -1376,12 +1387,12 @@ export function pointSize(count: number, max: number): number {
 }
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 Run: `cd frontend && npm test`
 Expected: PASS（含既有 `format.test.ts`、`moderation.test.ts`）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add frontend/src/constants/geo.ts frontend/src/utils/geo.ts frontend/src/utils/geo.test.ts
@@ -1395,7 +1406,7 @@ git commit -m "feat(frontend): 地区常量与地图纯函数"
 **Files:**
 - Modify: `frontend/src/api/types.ts`、`frontend/src/api/endpoints.ts`
 
-- [ ] **Step 1: 加类型**
+- [x] **Step 1: 加类型**
 
 追加到 `frontend/src/api/types.ts`：
 
@@ -1432,7 +1443,7 @@ export interface RegionOption {
 
 并给 `SourceItem` 与 `SourceInput` 各加一行 `region: string;`。
 
-- [ ] **Step 2: 加端点**
+- [x] **Step 2: 加端点**
 
 `frontend/src/api/endpoints.ts`：顶部 import 增加
 
@@ -1450,12 +1461,12 @@ import type { GeoOverview, RegionArticles, RegionOption } from "./types";
     http.get<RegionArticles>(`/regions/${code}/articles${queryString(params)}`),
 ```
 
-- [ ] **Step 3: 跑类型检查**
+- [x] **Step 3: 跑类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS（若报 `SourceInput` 缺 `region`，在 `SourcesPage.tsx` 的 `EMPTY_FORM` 里补 `region: ""`，Task 16 会接上完整 UI）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/api/types.ts frontend/src/api/endpoints.ts
@@ -1471,7 +1482,7 @@ git commit -m "feat(frontend): 地区接口类型与端点"
 
 说明：组件是渲染层，仓库的 vitest 只跑纯函数（`vite.config.ts` 里 `include: ["src/**/*.test.ts"]`、environment=node），所以本任务用类型检查 + 手动查看验证，不给组件补测试。
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/WorldMap.tsx
@@ -1602,12 +1613,12 @@ export default function WorldMap({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS（若 `worldGeo as never` 仍报错，改成 `echarts.registerMap("world", worldGeo as unknown as Parameters<typeof echarts.registerMap>[1])`）
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/WorldMap.tsx
@@ -1621,7 +1632,7 @@ git commit -m "feat(frontend): 双层世界地图组件"
 **Files:**
 - Create: `frontend/src/components/map/MapLegend.tsx`
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/MapLegend.tsx
@@ -1694,12 +1705,12 @@ export default function MapLegend({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/MapLegend.tsx
@@ -1713,7 +1724,7 @@ git commit -m "feat(frontend): 地图图例与时间窗切换"
 **Files:**
 - Create: `frontend/src/components/map/RegionPanel.tsx`
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/RegionPanel.tsx
@@ -1820,12 +1831,12 @@ export default function RegionPanel({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/RegionPanel.tsx
@@ -1841,7 +1852,7 @@ git commit -m "feat(frontend): 地区榜与地区新闻两态面板"
 
 作用：`DashboardPage` 删除后，原四张板块卡的「最新日报标题 + 近 24h 条数」由这条 chip 承接。
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 ```tsx
 // frontend/src/components/map/CategoryStrip.tsx
@@ -1890,12 +1901,12 @@ export default function CategoryStrip({ overview }: Props) {
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `cd frontend && npm run typecheck`
 Expected: PASS
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add frontend/src/components/map/CategoryStrip.tsx
@@ -1911,7 +1922,7 @@ git commit -m "feat(frontend): 板块状态 chip 条"
 - Modify: `frontend/src/App.tsx`
 - Delete: `frontend/src/pages/DashboardPage.tsx`
 
-- [ ] **Step 1: 写页面**
+- [x] **Step 1: 写页面**
 
 ```tsx
 // frontend/src/pages/MapBoardPage.tsx
@@ -2022,7 +2033,7 @@ export default function MapBoardPage() {
 }
 ```
 
-- [ ] **Step 2: 换路由、删旧页面**
+- [x] **Step 2: 换路由、删旧页面**
 
 `frontend/src/App.tsx`：把 `import DashboardPage from "./pages/DashboardPage";` 换成
 
@@ -2042,12 +2053,12 @@ import MapBoardPage from "./pages/MapBoardPage";
 git rm frontend/src/pages/DashboardPage.tsx
 ```
 
-- [ ] **Step 3: 跑构建**
+- [x] **Step 3: 跑构建**
 
 Run: `cd frontend && npm run build`
 Expected: PASS（类型检查 + 产物构建；若报 `DashboardPage` 仍被引用，检查 `App.tsx` 是否漏改）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/pages/MapBoardPage.tsx frontend/src/App.tsx
@@ -2061,7 +2072,7 @@ git commit -m "feat(frontend): 看板改为世界地图页"
 **Files:**
 - Modify: `frontend/src/pages/SourcesPage.tsx`
 
-- [ ] **Step 1: 接上地区字段**
+- [x] **Step 1: 接上地区字段**
 
 1. `EMPTY_FORM` 增加 `region: "",`
 2. `openEdit` 的 `form.setFieldsValue({...})` 增加 `region: item.region,`
@@ -2096,17 +2107,17 @@ git commit -m "feat(frontend): 看板改为世界地图页"
     { title: "地区", dataIndex: "region", width: 100, render: (value: string) => value || "—" },
 ```
 
-- [ ] **Step 2: 跑构建**
+- [x] **Step 2: 跑构建**
 
 Run: `cd frontend && npm run build`
 Expected: PASS
 
-- [ ] **Step 3: 手动确认文件未超 300 行**
+- [x] **Step 3: 手动确认文件未超 300 行**
 
 Run: `wc -l frontend/src/pages/SourcesPage.tsx`
 Expected: < 300（若超过，按 AGENTS.md 把抽屉表单抽成 `components/sources/SourceForm.tsx` 再提交）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add frontend/src/pages/SourcesPage.tsx
@@ -2120,7 +2131,7 @@ git commit -m "feat(frontend): 源管理支持配置来源地区"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: 更新 README**
+- [x] **Step 1: 更新 README**
 
 在「页面：…」那一段补上世界看板与地区词表的说明：
 
@@ -2146,17 +2157,17 @@ git commit -m "feat(frontend): 源管理支持配置来源地区"
 - `GET /api/regions/{code}/articles?window=&category=` 某地区文章列表
 ```
 
-- [ ] **Step 2: 后端全量测试**
+- [x] **Step 2: 后端全量测试**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 全部通过（含既有用例）
 
-- [ ] **Step 3: 前端全量校验**
+- [x] **Step 3: 前端全量校验**
 
 Run: `cd frontend && npm test && npm run build`
 Expected: 单测通过、构建通过
 
-- [ ] **Step 4: 手动验收**
+- [x] **Step 4: 手动验收**
 
 ```bash
 cd backend && uv run uvicorn app.main:app --reload --port 8000
@@ -2171,7 +2182,7 @@ cd frontend && npm run dev
 - 点图例里的「军事」→ 只剩军事点与被重算后的填色；再点回来恢复
 - 切到「7 天」→ 地图数据刷新，右栏重置回地区榜
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add README.md

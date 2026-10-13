@@ -43,21 +43,25 @@ class StanceItemIn(BaseModel):
 
 
 class PoliticsExtraction(BaseModel):
+    regions: list[str] = []
     events: list[TimelineItemIn] = []
     stances: list[StanceItemIn] = []
 
 
 class MilitaryExtraction(BaseModel):
+    regions: list[str] = []
     weapons: list[WeaponItemIn] = []
     conflicts: list[TimelineItemIn] = []
 
 
 class EconomyExtraction(BaseModel):
+    regions: list[str] = []
     indicators: list[IndicatorItemIn] = []
     policies: list[TimelineItemIn] = []
 
 
 class FinanceExtraction(BaseModel):
+    regions: list[str] = []
     events: list[TimelineItemIn] = []
 
 

@@ -13,6 +13,7 @@ from app.repositories import tasks as tasks_repo
 from app.services import analyzer
 from app.services.collector import collect_new
 from app.services.extraction.extractor import extract_article
+from app.services.geo_tag import backfill_source_regions
 from app.services.llm import ChatProvider, get_provider
 from app.services.marketdata import run_snapshots
 
@@ -40,15 +41,21 @@ def run_task_flow(db: Session, task: Task, *, client=None,
             fetched += result["fetched"]
             new += result["new"]
             errors.extend(result["errors"])
-            if settings.extract_enabled and new:
+            new_articles = articles_repo.list_new_since(db, started) if new else []
+            if new_articles and settings.extract_enabled:
                 prov = provider or get_provider(settings)
-                for article in articles_repo.list_new_since(db, started):
+                for article in new_articles:
                     try:
                         stats = extract_article(db, article, prov, settings)
                         if stats["failed"]:
                             errors.append(f"文章 {article.id} 提取失败 {stats['failed']} 项")
                     except Exception as exc:  # noqa: BLE001
                         errors.append(f"文章 {article.id} 提取异常: {exc}")
+            if new_articles:
+                try:
+                    backfill_source_regions(db, new_articles)
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"地区兜底失败: {exc}")
             if settings.market_symbols and (task.category is None or task.category == "finance"):
                 try:
                     snap = run_snapshots(db, settings, client=client)

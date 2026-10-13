@@ -1,6 +1,41 @@
 import { describe, expect, it } from "vitest";
 
-import { compareToForecast, formatChangePct, formatDateTime, healthLevel } from "./format";
+import {
+  compareToForecast,
+  formatApiDetail,
+  formatChangePct,
+  formatDateTime,
+  healthLevel,
+} from "./format";
+
+describe("formatApiDetail", () => {
+  it("keeps a plain string detail", () => {
+    expect(formatApiDetail("未知地区", "Internal Server Error")).toBe("未知地区");
+  });
+
+  it("renders FastAPI validation issues with the field name", () => {
+    const detail = [
+      {
+        type: "value_error",
+        loc: ["body", "region"],
+        msg: "Value error, 未知地区: zz",
+        input: "zz",
+      },
+    ];
+    expect(formatApiDetail(detail, "Unprocessable Entity")).toBe("region: 未知地区: zz");
+  });
+
+  it("joins multiple issues and falls back when there is nothing to show", () => {
+    expect(
+      formatApiDetail([{ loc: ["body", "name"], msg: "field required" }, { msg: "too long" }], "x"),
+    ).toBe("name: field required；too long");
+    expect(formatApiDetail(undefined, "Internal Server Error")).toBe("Internal Server Error");
+  });
+
+  it("falls back for an empty issue list", () => {
+    expect(formatApiDetail([], "x")).toBe("x");
+  });
+});
 
 describe("compareToForecast", () => {
   it("marks beat when value is above forecast", () => {

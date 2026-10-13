@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from httpx import Client
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.geo import REGION_MAP
 from app.models.entities import Source
 from app.repositories import sources as repo
 from app.services.collector import USER_AGENT, fetch_source
@@ -12,13 +13,26 @@ from app.services.collector import USER_AGENT, fetch_source
 router = APIRouter(prefix="/api/sources", tags=["sources"])
 
 
+def _check_region(value: str | None) -> str | None:
+    """地区 code 必须落在词表内；空串表示清空、None 表示不改，均放行。"""
+    if value in (None, "") or value in REGION_MAP:
+        return value
+    raise ValueError(f"未知地区: {value}")
+
+
 class SourceIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     url: str = Field(min_length=5, max_length=2000)
     feed_type: str = Field(default="rss", pattern="^(rss|page)$")
     lang: str = Field(default="en", max_length=10)
+    region: str = Field(default="", max_length=32)
     enabled: bool = True
     categories: list[str] = Field(min_length=1)
+
+    @field_validator("region")
+    @classmethod
+    def _region(cls, value: str) -> str:
+        return _check_region(value)
 
 
 class SourcePatch(BaseModel):
@@ -26,8 +40,14 @@ class SourcePatch(BaseModel):
     url: str | None = None
     feed_type: str | None = Field(default=None, pattern="^(rss|page)$")
     lang: str | None = None
+    region: str | None = Field(default=None, max_length=32)
     enabled: bool | None = None
     categories: list[str] | None = None
+
+    @field_validator("region")
+    @classmethod
+    def _region(cls, value: str | None) -> str | None:
+        return _check_region(value)
 
 
 def _out(source: Source) -> dict:
@@ -37,6 +57,7 @@ def _out(source: Source) -> dict:
         "url": source.url,
         "feed_type": source.feed_type,
         "lang": source.lang,
+        "region": source.region,
         "enabled": source.enabled,
         "categories": [sc.category for sc in source.source_categories],
         "last_ok_at": source.last_ok_at.isoformat() if source.last_ok_at else None,
@@ -67,7 +88,8 @@ def create_source(payload: SourceIn, db: Session = Depends(get_db)) -> dict:
     try:
         source = repo.create_source(
             db, name=payload.name, url=payload.url, feed_type=payload.feed_type,
-            lang=payload.lang, categories=payload.categories, enabled=payload.enabled,
+            lang=payload.lang, categories=payload.categories, region=payload.region,
+            enabled=payload.enabled,
         )
     except IntegrityError:
         db.rollback()
@@ -82,7 +104,8 @@ def patch_source(source_id: int, payload: SourcePatch,
     try:
         source = repo.update_source(
             db, source, name=payload.name, url=payload.url, feed_type=payload.feed_type,
-            lang=payload.lang, enabled=payload.enabled, categories=payload.categories,
+            lang=payload.lang, enabled=payload.enabled, region=payload.region,
+            categories=payload.categories,
         )
     except IntegrityError:
         db.rollback()

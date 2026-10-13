@@ -19,8 +19,10 @@ import { useMemo, useState } from "react";
 import { api } from "../api/endpoints";
 import type { SourceInput, SourceItem } from "../api/types";
 import PageHeader from "../components/PageHeader";
+import SourceForm from "../components/sources/SourceForm";
 import { CATEGORY_OPTIONS, CATEGORY_MAP } from "../constants/categories";
-import { FEED_TYPES, HEALTH_LABELS, LANGS } from "../constants/options";
+import { HEALTH_LABELS } from "../constants/options";
+import { EMPTY_SOURCE_FORM, SOURCE_TEXT, regionDisplayName } from "../constants/sources";
 import { useAsync } from "../hooks/useAsync";
 import { formatDateTime, healthLevel } from "../utils/format";
 
@@ -30,23 +32,19 @@ interface Filters {
   keyword?: string;
 }
 
-const EMPTY_FORM: SourceInput = {
-  name: "",
-  url: "",
-  feed_type: "rss",
-  lang: "en",
-  enabled: true,
-  categories: [],
-};
-
 export default function SourcesPage() {
   const { data, loading, reload } = useAsync(() => api.sources(), []);
+  const regions = useAsync(() => api.regions(), []);
   const [filters, setFilters] = useState<Filters>({});
   const [editing, setEditing] = useState<SourceItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm<SourceInput>();
 
   const items = data?.items ?? [];
+  const regionNames = useMemo(
+    () => new Map((regions.data?.items ?? []).map((item) => [item.code, item.name])),
+    [regions.data],
+  );
   const visible = useMemo(() => {
     return items.filter((item) => {
       if (filters.category && !item.categories.includes(filters.category)) return false;
@@ -65,7 +63,7 @@ export default function SourcesPage() {
 
   function openCreate() {
     setEditing(null);
-    form.setFieldsValue(EMPTY_FORM);
+    form.setFieldsValue(EMPTY_SOURCE_FORM);
     setDrawerOpen(true);
   }
 
@@ -76,6 +74,7 @@ export default function SourcesPage() {
       url: item.url,
       feed_type: item.feed_type,
       lang: item.lang,
+      region: item.region,
       enabled: item.enabled,
       categories: item.categories,
     });
@@ -142,6 +141,12 @@ export default function SourcesPage() {
           ))}
         </Space>
       ),
+    },
+    {
+      title: "地区",
+      key: "region",
+      width: 120,
+      render: (_: unknown, row: SourceItem) => regionDisplayName(row.region, regionNames),
     },
     { title: "类型", dataIndex: "feed_type", key: "feed_type" },
     { title: "语言", dataIndex: "lang", key: "lang" },
@@ -250,7 +255,7 @@ export default function SourcesPage() {
       </Card>
 
       <Drawer
-        title={editing ? `编辑：${editing.name}` : "新增采集源"}
+        title={editing ? SOURCE_TEXT.editTitle(editing.name) : SOURCE_TEXT.createTitle}
         width={460}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -263,30 +268,11 @@ export default function SourcesPage() {
           </Space>
         }
       >
-        <Form form={form} layout="vertical" initialValues={EMPTY_FORM}>
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
-            <Input placeholder="例如 Reuters Business" />
-          </Form.Item>
-          <Form.Item name="url" label="URL" rules={[{ required: true }]}>
-            <Input placeholder="https://example.com/feed" />
-          </Form.Item>
-          <Form.Item name="feed_type" label="类型" rules={[{ required: true }]}>
-            <Select options={FEED_TYPES} />
-          </Form.Item>
-          <Form.Item
-            name="categories"
-            label="板块"
-            rules={[{ required: true, message: "至少选择一个板块" }]}
-          >
-            <Select mode="multiple" options={CATEGORY_OPTIONS} />
-          </Form.Item>
-          <Form.Item name="lang" label="语言" rules={[{ required: true }]}>
-            <Select options={LANGS} />
-          </Form.Item>
-          <Form.Item name="enabled" label="启用" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Form>
+        <SourceForm
+          form={form}
+          regions={regions.data?.items ?? []}
+          regionsLoading={regions.loading}
+        />
       </Drawer>
     </div>
   );

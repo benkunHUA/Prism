@@ -27,6 +27,7 @@ class Source(Base):
     url: Mapped[str] = mapped_column(String(2000), unique=True)
     feed_type: Mapped[str] = mapped_column(String(10), default="rss")
     lang: Mapped[str] = mapped_column(String(10), default="en")
+    region: Mapped[str] = mapped_column(String(32), default="")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_ok_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -68,6 +69,20 @@ class Article(Base):
     analysis_links: Mapped[list[AnalysisArticle]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
     )
+
+
+class ArticleRegion(Base):
+    """文章级地区标签：llm=抽取打标，source=来源兜底。"""
+
+    __tablename__ = "article_regions"
+    __table_args__ = (UniqueConstraint("article_id", "region_code", name="uq_article_region"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    article_id: Mapped[int] = mapped_column(
+        ForeignKey("articles.id", ondelete="CASCADE"), index=True
+    )
+    region_code: Mapped[str] = mapped_column(String(32), index=True)
+    source: Mapped[str] = mapped_column(String(10), default="llm")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Analysis(Base):

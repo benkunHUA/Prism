@@ -41,3 +41,50 @@ def test_source_test_endpoint(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["ok"] is True and body["preview"][0]["title"] == "T"
+
+
+def test_source_region_roundtrip(client):
+    body = {
+        "name": "Region Feed", "url": "https://region.example/feed",
+        "feed_type": "rss", "lang": "en", "categories": ["politics"], "region": "gb",
+    }
+    created = client.post("/api/sources", json=body)
+    assert created.status_code == 201
+    assert created.json()["region"] == "gb"
+
+    source_id = created.json()["id"]
+    patched = client.patch(f"/api/sources/{source_id}", json={"region": "us"})
+    assert patched.json()["region"] == "us"
+
+    options = client.get("/api/regions").json()["items"]
+    assert {"code": "us", "name": "美国"} in options
+    assert {"code": "gaza", "name": "加沙"} in options
+
+
+def test_source_region_rejects_unknown_code(client):
+    body = {
+        "name": "Bogus Feed", "url": "https://bogus.example/feed",
+        "feed_type": "rss", "lang": "en", "categories": ["politics"],
+        "region": "bogus",
+    }
+    resp = client.post("/api/sources", json=body)
+    assert resp.status_code == 422
+    assert "未知地区" in resp.json()["detail"][0]["msg"]
+
+
+def test_source_region_patch_rejects_unknown_code(client):
+    source_id = client.get("/api/sources").json()["items"][0]["id"]
+    resp = client.patch(f"/api/sources/{source_id}", json={"region": "bogus"})
+    assert resp.status_code == 422
+    assert "未知地区" in resp.json()["detail"][0]["msg"]
+
+
+def test_source_region_can_be_cleared(client):
+    body = {
+        "name": "Clear Feed", "url": "https://clear.example/feed",
+        "feed_type": "rss", "lang": "en", "categories": ["politics"], "region": "gb",
+    }
+    source_id = client.post("/api/sources", json=body).json()["id"]
+    cleared = client.patch(f"/api/sources/{source_id}", json={"region": ""})
+    assert cleared.status_code == 200
+    assert cleared.json()["region"] == ""

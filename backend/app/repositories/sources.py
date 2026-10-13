@@ -12,8 +12,10 @@ def get_source(db: Session, source_id: int) -> Source | None:
 
 
 def create_source(db: Session, *, name: str, url: str, feed_type: str,
-                  lang: str, categories: list[str], enabled: bool = True) -> Source:
-    source = Source(name=name, url=url, feed_type=feed_type, lang=lang, enabled=enabled)
+                  lang: str, categories: list[str], region: str = "",
+                  enabled: bool = True) -> Source:
+    source = Source(name=name, url=url, feed_type=feed_type, lang=lang,
+                    region=region, enabled=enabled)
     for cat in categories:
         source.source_categories.append(SourceCategory(category=cat))
     db.add(source)
@@ -25,6 +27,7 @@ def create_source(db: Session, *, name: str, url: str, feed_type: str,
 def update_source(db: Session, source: Source, *, name: str | None = None,
                   url: str | None = None, feed_type: str | None = None,
                   lang: str | None = None, enabled: bool | None = None,
+                  region: str | None = None,
                   categories: list[str] | None = None) -> Source:
     if name is not None:
         source.name = name
@@ -36,6 +39,8 @@ def update_source(db: Session, source: Source, *, name: str | None = None,
         source.lang = lang
     if enabled is not None:
         source.enabled = enabled
+    if region is not None:
+        source.region = region
     if categories is not None:
         existing = {sc.category for sc in source.source_categories}
         for cat in set(categories) - existing:

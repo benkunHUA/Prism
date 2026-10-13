@@ -44,3 +44,25 @@ export function todayLabel(iso: string | null | undefined): string {
   if (!iso) return "—";
   return iso.slice(0, 10);
 }
+
+interface ValidationIssue {
+  loc?: unknown[];
+  msg?: string;
+}
+
+// FastAPI 校验失败时 detail 是数组，直接字符串化只会得到 "[object Object]"
+export function formatApiDetail(detail: unknown, fallback: string): string {
+  if (typeof detail === "string" && detail) return detail;
+  if (!Array.isArray(detail)) return fallback;
+  const parts = (detail as ValidationIssue[])
+    .map((issue) => {
+      if (!issue || typeof issue !== "object") return String(issue);
+      const field = Array.isArray(issue.loc)
+        ? issue.loc.filter((part) => part !== "body" && part !== "query").join(".")
+        : "";
+      const text = String(issue.msg ?? "").replace(/^Value error,\s*/, "");
+      return field ? `${field}: ${text}` : text;
+    })
+    .filter(Boolean);
+  return parts.length ? parts.join("；") : fallback;
+}
