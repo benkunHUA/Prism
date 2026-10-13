@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import suppress
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,11 @@ from app.services.translation.prompts import build_translation_prompt
 
 TITLE_LIMIT = 500
 SUMMARY_INPUT_CHARS = 1000
+FAILURE_TEMPLATE = "文章 {article_id} 翻译失败: {reason}"
+
+
+def _fail(article: Article, reason: object) -> str:
+    return FAILURE_TEMPLATE.format(article_id=article.id, reason=reason)
 
 
 def translate_articles(db: Session, articles: list[Article], provider: ChatProvider,
@@ -30,7 +36,7 @@ def translate_articles(db: Session, articles: list[Article], provider: ChatProvi
     todo = [article for article in pending if article.lang != "zh"]
 
     done, errors = _write_native(db, native)
-    errors.extend(f"文章 {article.id} 翻译失败: 原文标题为空" for article in blank)
+    errors.extend(_fail(article, "原文标题为空") for article in blank)
 
     size = max(1, settings.translate_batch_size)
     for start in range(0, len(todo), size):
@@ -56,9 +62,15 @@ def _commit(db: Session, articles: list[Article]) -> tuple[bool, list[str]]:
     try:
         db.commit()
     except Exception as exc:  # noqa: BLE001 - 落库失败只降级为错误，不中断整轮
-        db.rollback()
-        return False, [f"文章 {article.id} 翻译失败: {exc}" for article in articles]
+        _rollback(db)
+        return False, [_fail(article, exc) for article in articles]
     return True, []
+
+
+def _rollback(db: Session) -> None:
+    """连接已断时 rollback 自身也会抛，这里只求不扩散。"""
+    with suppress(Exception):
+        db.rollback()
 
 
 def _run_batch(db: Session, batch: list[Article], provider: ChatProvider,
@@ -73,7 +85,7 @@ def _run_batch(db: Session, batch: list[Article], provider: ChatProvider,
         parsed = _parse_array(raw)
     except Exception as exc:  # noqa: BLE001 - 整批失败一律降级重试
         if len(batch) == 1:
-            return 0, [f"文章 {batch[0].id} 翻译失败: {exc}"]
+            return 0, [_fail(batch[0], exc)]
         half = len(batch) // 2
         done = 0
         errors: list[str] = []
@@ -85,8 +97,8 @@ def _run_batch(db: Session, batch: list[Article], provider: ChatProvider,
     try:
         return _apply(db, batch, parsed)
     except Exception as exc:  # noqa: BLE001 - 写库异常同样不能逃逸
-        db.rollback()
-        return 0, [f"文章 {article.id} 翻译失败: {exc}" for article in batch]
+        _rollback(db)
+        return 0, [_fail(article, exc) for article in batch]
 
 
 def _prompt_items(batch: list[Article]) -> list[tuple[int, str, str]]:
@@ -131,7 +143,7 @@ def _apply(db: Session, batch: list[Article], parsed: list) -> tuple[int, list[s
     for index, article in enumerate(batch):
         hit = hits.get(index)
         if hit is None:
-            errors.append(f"文章 {article.id} 翻译失败: 模型未返回该条")
+            errors.append(_fail(article, "模型未返回该条"))
             continue
         article.title_zh, article.summary_zh = hit
         done += 1

@@ -278,3 +278,57 @@ def test_commit_failure_does_not_raise(db, monkeypatch):
     assert len(errors_zh) == 1
     assert "disk full" in errors_zh[0]
     assert provider_zh.calls == 0
+
+
+def test_rollback_failure_does_not_raise(db, monkeypatch):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+    rows = _articles(db, 1)
+    provider = ScriptedProvider(settings, lambda messages, call_no: _payload([0]))
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("connection lost")
+
+    monkeypatch.setattr(db, "commit", boom)
+    monkeypatch.setattr(db, "rollback", boom)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert done == 0
+    assert len(errors) == 1
+    assert "connection lost" in errors[0]
+
+
+def test_non_string_title_zh_is_dropped(db):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+    rows = _articles(db, 2)
+    payload = json.dumps(
+        [{"index": 0, "title_zh": 123, "summary_zh": "要点"},
+         {"index": 1, "title_zh": "标题1", "summary_zh": "要点1"}],
+        ensure_ascii=False,
+    )
+    provider = ScriptedProvider(settings, lambda messages, call_no: payload)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert (done, len(errors)) == (1, 1)          # 同一批里另一条照常落库
+    assert "模型未返回该条" in errors[0]           # 非法条目按缺项丢弃，不是整批炸掉
+    assert rows[0].title_zh is None
+    assert rows[1].title_zh == "标题1"
+
+
+def test_blank_native_title_is_reported(db):
+    settings = Settings(_env_file=None)
+    articles_repo.insert_articles(db, [
+        dict(source_id=_articles(db, 1)[0].source_id, category="politics",
+             url="https://example.com/blank", title="", summary="摘要",
+             content_text="", published_at=None, lang="zh", dedupe_hash="blank"),
+    ])
+    blank_rows = [row for row in articles_repo.list_articles(db) if row.url.endswith("/blank")]
+    provider = ScriptedProvider(settings, lambda messages, call_no: "不该被调用")
+
+    done, errors = translate_articles(db, blank_rows, provider, settings)
+
+    assert done == 0
+    assert len(errors) == 1
+    assert "原文标题为空" in errors[0]
+    assert provider.calls == 0
