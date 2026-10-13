@@ -966,11 +966,7 @@ git commit -m "feat(frontend): 文章译文类型与展示回落纯函数"
   // 地区面板列表容器：与地图卡片（height 520）对齐，超出时容器内滚动
   listMaxHeight: 440,
   listMinHeight: 240,
-```
-
-在 `MAP_BOARD_TEXT` 里，在 `regionEmpty` 之后插入：
-
-```ts
+  // 条目摘要最多显示几行
   summaryLines: 2,
 ```
 
@@ -988,6 +984,7 @@ import { Button, Card, List, Space, Tag } from "antd";
 
 ```tsx
 import { Button, Card, List, Space, Tag, Typography } from "antd";
+import type { ReactNode } from "react";
 ```
 
 并在 `import { formatDateTime } from "../../utils/format";` 之后加：
@@ -1000,7 +997,7 @@ import { displaySummary, displayTitle } from "../../utils/article";
 
 ```tsx
 /** 固定高度的滚动容器：列表超出时在容器内滚，页面不被撑长。 */
-function ScrollBody({ children }: { children: React.ReactNode }) {
+function ScrollBody({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
@@ -1068,7 +1065,7 @@ function ScrollBody({ children }: { children: React.ReactNode }) {
                           <Typography.Paragraph
                             type="secondary"
                             style={{ marginBottom: 4, fontSize: 12 }}
-                            ellipsis={{ rows: MAP_BOARD_TEXT.summaryLines }}
+                            ellipsis={{ rows: MAP_BOARD_STYLE.summaryLines }}
                           >
                             {summary}
                           </Typography.Paragraph>
@@ -1097,7 +1094,7 @@ Expected: 三项都通过；`build` 只有既有的 chunk 体积警告
 - [ ] **Step 4: 本地肉眼验收**
 
 ```bash
-cd backend && DATABASE_URL= DB_PATH=/tmp/aurora-ui-check.db SCHEDULER_ENABLED=false uv run uvicorn app.main:app --port 8300 --workers 1
+cd backend && DB_PATH=/tmp/aurora-ui-check.db SCHEDULER_ENABLED=false uv run uvicorn app.main:app --port 8300 --workers 1
 cd frontend && npx vite --port 5300
 ```
 
