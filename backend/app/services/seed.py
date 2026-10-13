@@ -30,6 +30,7 @@ def seed_defaults(db: Session, settings: Settings | None = None) -> bool:
             url=item["url"],
             feed_type=item.get("feed_type", "rss"),
             lang=item.get("lang", "en"),
+            region=item.get("region", ""),
             categories=item["categories"],
         )
     create_task(db, name="采集·全板块", kind="collect", category=None, cron=settings.collect_cron)
