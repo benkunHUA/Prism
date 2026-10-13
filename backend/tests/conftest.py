@@ -1,5 +1,8 @@
 import pytest
 
+# 注册全部 ORM 模型，保证任何测试文件单独运行时 Base.metadata 都是完整的
+import app.models.entities  # noqa: F401
+
 
 @pytest.fixture()
 def db(tmp_path):
