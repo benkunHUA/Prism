@@ -25,34 +25,45 @@ def translate_articles(db: Session, articles: list[Article], provider: ChatProvi
     pending = [article for article in articles if not article.title_zh]
     if not pending:
         return 0, []
-    native = [article for article in pending if article.lang == "zh"]
-    _write_native(db, native)
+    native = [article for article in pending if article.lang == "zh" and article.title]
+    blank = [article for article in pending if article.lang == "zh" and not article.title]
     todo = [article for article in pending if article.lang != "zh"]
-    done = len(native)
-    errors: list[str] = []
+
+    done, errors = _write_native(db, native)
+    errors.extend(f"文章 {article.id} 翻译失败: 原文标题为空" for article in blank)
+
     size = max(1, settings.translate_batch_size)
     for start in range(0, len(todo), size):
-        batch_done, batch_errors = _run_batch(
-            db, todo[start:start + size], provider, settings
-        )
+        batch_done, batch_errors = _run_batch(db, todo[start:start + size], provider, settings)
         done += batch_done
         errors.extend(batch_errors)
     return done, errors
 
 
-def _write_native(db: Session, articles: list[Article]) -> None:
+def _write_native(db: Session, articles: list[Article]) -> tuple[int, list[str]]:
     """原文已是中文，直接落原文，不调模型。"""
     if not articles:
-        return
+        return 0, []
     for article in articles:
-        article.title_zh = article.title
+        article.title_zh = article.title[:TITLE_LIMIT]
         article.summary_zh = article.summary or None
-    db.commit()
+    written, errors = _commit(db, articles)
+    return (len(articles) if written else 0), errors
+
+
+def _commit(db: Session, articles: list[Article]) -> tuple[bool, list[str]]:
+    """提交；落库失败时回滚并把整批计入错误，绝不让异常逃逸。"""
+    try:
+        db.commit()
+    except Exception as exc:  # noqa: BLE001 - 落库失败只降级为错误，不中断整轮
+        db.rollback()
+        return False, [f"文章 {article.id} 翻译失败: {exc}" for article in articles]
+    return True, []
 
 
 def _run_batch(db: Session, batch: list[Article], provider: ChatProvider,
                settings: Settings) -> tuple[int, list[str]]:
-    """翻一批；整批不可用时对半拆开重试，收敛到单篇。"""
+    """翻一批；模型侧整批不可用时对半拆开重试，收敛到单篇。"""
     try:
         raw = provider.complete(
             [{"role": "user", "content": build_translation_prompt(_prompt_items(batch))}],
@@ -71,7 +82,11 @@ def _run_batch(db: Session, batch: list[Article], provider: ChatProvider,
             done += part_done
             errors.extend(part_errors)
         return done, errors
-    return _apply(db, batch, parsed)
+    try:
+        return _apply(db, batch, parsed)
+    except Exception as exc:  # noqa: BLE001 - 写库异常同样不能逃逸
+        db.rollback()
+        return 0, [f"文章 {article.id} 翻译失败: {exc}" for article in batch]
 
 
 def _prompt_items(batch: list[Article]) -> list[tuple[int, str, str]]:
@@ -93,19 +108,23 @@ def _parse_array(raw: str) -> list:
 
 
 def _apply(db: Session, batch: list[Article], parsed: list) -> tuple[int, list[str]]:
-    """按 index 对号入座；重复、越界、缺标题的条目一律丢弃。"""
+    """按 index 对号入座；非整数 index、重复、越界、缺标题的条目一律丢弃。"""
     hits: dict[int, tuple[str, str | None]] = {}
     for entry in parsed:
         if not isinstance(entry, dict):
             continue
         index = entry.get("index")
-        title_zh = str(entry.get("title_zh") or "").strip()
-        if not isinstance(index, int) or index in hits:
+        title_zh = entry.get("title_zh")
+        if isinstance(index, bool) or not isinstance(index, int) or index in hits:
             continue
-        if not 0 <= index < len(batch) or not title_zh:
+        if not 0 <= index < len(batch) or not isinstance(title_zh, str):
             continue
-        summary_zh = str(entry.get("summary_zh") or "").strip() or None
-        hits[index] = (title_zh[:TITLE_LIMIT], summary_zh)
+        title_zh = title_zh.strip()
+        if not title_zh:
+            continue
+        raw_summary = entry.get("summary_zh")
+        summary_zh = raw_summary.strip() if isinstance(raw_summary, str) else ""
+        hits[index] = (title_zh[:TITLE_LIMIT], summary_zh or None)
 
     done = 0
     errors: list[str] = []
@@ -116,5 +135,7 @@ def _apply(db: Session, batch: list[Article], parsed: list) -> tuple[int, list[s
             continue
         article.title_zh, article.summary_zh = hit
         done += 1
-    db.commit()
-    return done, errors
+    if not hits:
+        return 0, errors
+    written, commit_errors = _commit(db, batch)
+    return (done if written else 0), errors + commit_errors

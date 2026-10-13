@@ -150,3 +150,131 @@ def test_existing_translation_is_not_overwritten(db):
     assert provider.calls == 1
     assert rows[0].title_zh == "已有译文"
     assert rows[1].title_zh == "标题0"
+
+
+def test_empty_articles_returns_zero(db):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+    provider = ScriptedProvider(settings, lambda messages, call_no: _payload([0]))
+
+    done, errors = translate_articles(db, [], provider, settings)
+
+    assert (done, errors) == (0, [])
+    assert provider.calls == 0
+
+
+def test_batch_size_zero_uses_single_article_batches(db):
+    settings = Settings(_env_file=None, translate_batch_size=0)
+    rows = _articles(db, 3)
+    provider = ScriptedProvider(settings, lambda messages, call_no: _payload([0]))
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert provider.calls == 3
+    assert done == 3
+    assert errors == []
+
+
+def test_fenced_json_is_accepted(db):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+    rows = _articles(db, 2)
+    fenced = "```json\n" + _payload([0, 1]) + "\n```"
+    provider = ScriptedProvider(settings, lambda messages, call_no: fenced)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert (done, errors) == (2, [])
+    assert provider.calls == 1
+
+
+def test_non_array_payload_splits(db):
+    settings = Settings(_env_file=None, translate_batch_size=2)
+    rows = _articles(db, 2)
+    provider = ScriptedProvider(settings, lambda messages, call_no: "{}")
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert provider.calls == 3
+    assert done == 0
+    assert len(errors) == 2
+    assert rows[0].title_zh is None and rows[1].title_zh is None
+
+
+def test_bool_index_is_rejected(db):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+    rows = _articles(db, 2)
+    payload = json.dumps(
+        [{"index": True, "title_zh": "错位", "summary_zh": "x"}],
+        ensure_ascii=False,
+    )
+    provider = ScriptedProvider(settings, lambda messages, call_no: payload)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert done == 0
+    assert len(errors) == 2
+    assert rows[0].title_zh is None and rows[1].title_zh is None
+
+
+def test_prompt_limits_and_call_arguments(db):
+    settings = Settings(_env_file=None, translate_batch_size=10,
+                        llm_translate_max_tokens=1234)
+    rows = _articles(db, 1)
+    rows[0].summary = "x" * 5000
+    db.commit()
+    seen: dict = {}
+
+    class CaptureProvider(ChatProvider):
+        name = "capture"
+
+        def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
+            seen["messages"] = messages
+            seen["temperature"] = temperature
+            seen["max_tokens"] = max_tokens
+            return _payload([0])
+
+    provider = CaptureProvider(settings)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert (done, errors) == (1, [])
+    content = seen["messages"][0]["content"]
+    summary_line = next(line for line in content.splitlines() if line.startswith("[0] 摘要："))
+    assert summary_line == "[0] 摘要：" + "x" * 1000
+    assert seen["temperature"] == 0.0
+    assert seen["max_tokens"] == 1234
+
+
+def test_commit_failure_does_not_raise(db, monkeypatch):
+    settings = Settings(_env_file=None, translate_batch_size=10)
+
+    def boom():
+        raise RuntimeError("disk full")
+
+    # 正常翻译路径：写库失败降级为错误，不逃逸
+    rows = _articles(db, 2)
+    provider = ScriptedProvider(settings, lambda messages, call_no: _payload([0, 1]))
+    monkeypatch.setattr(db, "commit", boom)
+
+    done, errors = translate_articles(db, rows, provider, settings)
+
+    assert done == 0
+    assert len(errors) == 2
+    assert all("disk full" in message for message in errors)
+
+    # 中文原文直接落库路径：同样不逃逸（复用同一来源，避免重复来源冲突）
+    monkeypatch.undo()
+    articles_repo.insert_articles(db, [
+        dict(source_id=rows[0].source_id, category="politics",
+             url="https://example.com/zh0", title="中文标题", summary="中文摘要",
+             content_text="", published_at=None, lang="zh", dedupe_hash="zh0"),
+    ])
+    zh_rows = [row for row in articles_repo.list_articles(db) if row.lang == "zh"]
+    provider_zh = ScriptedProvider(settings, lambda messages, call_no: "不该被调用")
+    monkeypatch.setattr(db, "commit", boom)
+
+    done_zh, errors_zh = translate_articles(db, zh_rows, provider_zh, settings)
+
+    assert done_zh == 0
+    assert len(errors_zh) == 1
+    assert "disk full" in errors_zh[0]
+    assert provider_zh.calls == 0
