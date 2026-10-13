@@ -36,7 +36,7 @@ def test_collect_flow_writes_log_and_brief(db):
     from app.core.config import Settings
 
     task = _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False)
+    settings = Settings(_env_file=None, extract_enabled=False, translate_enabled=False)
     result = run_task_flow(
         db, task, client=_feed_client(),
         provider=FakeProvider(settings), settings=settings,
@@ -128,6 +128,7 @@ def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
     settings = Settings(
         _env_file=None, extract_enabled=True,
         market_symbols="index|标普500=100.SPX",
+        translate_enabled=False,
     )
     result = run_task_flow(
         db, task, client=_dual_client(tmp_path), provider=JsonProvider(settings), settings=settings,
@@ -152,7 +153,7 @@ def test_collect_flow_backfills_source_region(db):
     db.commit()
     task = tasks.create_task(db, name="采集", kind="collect", category=None,
                              cron="0 */4 * * *")
-    settings = Settings(_env_file=None, extract_enabled=False)
+    settings = Settings(_env_file=None, extract_enabled=False, translate_enabled=False)
 
     result = run_task_flow(db, task, client=_feed_client(),
                            provider=FakeProvider(settings), settings=settings)
@@ -162,3 +163,50 @@ def test_collect_flow_backfills_source_region(db):
     assert regions_repo.untagged_count(db, since) == 0  # 抽取关闭也要有标签
     assert {row[0] for row in regions_repo.count_by_region(db, since)} == {"gb"}
     assert {row[0] for row in db.query(ArticleRegion.source).all()} == {"source"}
+
+
+def test_collect_flow_translates_new_articles(db):
+    import re
+
+    from app.core.config import Settings
+
+    task = _setup(db)
+    settings = Settings(_env_file=None, extract_enabled=False)
+
+    class TranslateProvider(ChatProvider):
+        name = "translate"
+
+        def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
+            content = messages[-1]["content"]
+            indexes = [int(hit) for hit in re.findall(r"^\[(\d+)\] 标题：", content, re.M)]
+            return json.dumps(
+                [{"index": i, "title_zh": f"标题{i}", "summary_zh": "要点"} for i in indexes],
+                ensure_ascii=False,
+            )
+
+    result = run_task_flow(db, task, client=_feed_client(),
+                           provider=TranslateProvider(settings), settings=settings)
+
+    assert result["status"] == "success"
+    rows = articles.list_articles(db)
+    assert len(rows) == 2
+    assert all(row.title_zh for row in rows)
+
+
+def test_translate_failure_keeps_articles_and_marks_partial(db):
+    from app.core.config import Settings
+
+    class BoomTranslateProvider(FakeProvider):
+        def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
+            raise RuntimeError("boom")
+
+    task = _setup(db)
+    settings = Settings(_env_file=None, extract_enabled=False, translate_batch_size=1)
+
+    result = run_task_flow(db, task, client=_feed_client(),
+                           provider=BoomTranslateProvider(settings), settings=settings)
+
+    assert result["new"] == 2                       # 采集本身成功
+    assert result["status"] == "partial"            # 翻译失败不让整轮 failed
+    assert logs.list_logs(db)[0].status == "partial"
+    assert all(row.title_zh is None for row in articles.list_articles(db))

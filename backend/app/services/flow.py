@@ -16,6 +16,7 @@ from app.services.extraction.extractor import extract_article
 from app.services.geo_tag import backfill_source_regions
 from app.services.llm import ChatProvider, get_provider
 from app.services.marketdata import run_snapshots
+from app.services.translation import translator
 
 
 def _utcnow() -> datetime:
@@ -51,6 +52,15 @@ def run_task_flow(db: Session, task: Task, *, client=None,
                             errors.append(f"文章 {article.id} 提取失败 {stats['failed']} 项")
                     except Exception as exc:  # noqa: BLE001
                         errors.append(f"文章 {article.id} 提取异常: {exc}")
+            if new_articles and settings.translate_enabled:
+                try:
+                    translate_provider = provider or get_provider(settings)
+                    _, translate_errors = translator.translate_articles(
+                        db, new_articles, translate_provider, settings
+                    )
+                    errors.extend(translate_errors)
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"翻译失败: {exc}")
             if new_articles:
                 try:
                     backfill_source_regions(db, new_articles)
