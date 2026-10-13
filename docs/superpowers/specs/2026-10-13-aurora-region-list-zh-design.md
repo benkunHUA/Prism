@@ -25,6 +25,8 @@
 | 翻译时机 | 采集落库阶段写库（`title_zh` / `summary_zh`） | 列表秒出，无按需延迟，一次付费一次 |
 | 翻译方式 | 复用现有 DeepSeek（`ChatProvider`） | Google 在阿里云不可达；百度/有道要另配 key 另计费；本地 MT 在 2 核 1.6G 机器上不划算且质量不足 |
 | 与抽取的关系 | 独立翻译步骤，不并入抽取调用 | 抽取失败/关闭也能有中文；存量回填复用同一 service，不重跑抽取（否则会连带重写事件时间线） |
+| 调用方式 | 批量：一次请求翻多篇（默认 10 篇） | 92 篇从 92 次调用降到十几次，省掉重复提示词开销与往返等待 |
+| 批量失败处理 | 自适应减半重试，收敛到单篇 | 批量会把单点失败放大成整批丢失，必须能收敛 |
 | 摘要形态 | 中文要点（≤120 字），非逐字翻译 | 原 summary 最长 2000 字符，逐字翻既贵又放不进两行列表 |
 | 缺译文表现 | 前端回落原文标题/摘要 | 翻译失败不该让列表出现空条目 |
 
@@ -44,32 +46,52 @@
 新增 `app/services/translation/`：
 
 - `prompts.py`：翻译提示词与文案常量（按 AGENTS.md「配置与文案外置」）
-- `translator.py`：`translate_article(db, article, provider, settings) -> bool`
+- `translator.py`：`translate_articles(db, articles, provider, settings) -> tuple[int, list[str]]`，返回（成功写入篇数，错误消息列表），不抛异常给调用方
 
-行为约定：
+### 4.1 批量调用
 
-1. 输入只用 `article.title` 与 `article.summary`，摘要截断到 1000 字符；不读 `content_text`，避免正文带来额外 token。
-2. 要求模型返回 JSON `{"title_zh": "...", "summary_zh": "..."}`，失败即放弃本篇（不写库、不抛异常给调用方），由回填命令兜底重试。
-3. 已有 `title_zh` 的文章直接跳过，保证重复调用幂等。
-4. 输出为空或被截断（复用 `LLMResponseError` 判定）时不写库。
-5. 原文已是中文（`article.lang == "zh"`）时跳过翻译，直接写入 `title_zh = title`、`summary_zh = summary`。
+一次请求翻多篇，批大小 `Settings.translate_batch_size`（默认 10）：
+
+- 提示词给出带序号的条目列表（`index` + 标题 + 摘要），要求返回 JSON 数组
+  `[{"index": 0, "title_zh": "...", "summary_zh": "..."}]`
+- 提示词要求 `title_zh` 为直译标题、`summary_zh` 为不超过 120 字的中文要点
+- 输出预算 `Settings.llm_translate_max_tokens`（默认 3000）：一批 10 篇约 1200 token，留足余量
+- 逐条校验：`index` 必须落在本批内且不重复，`title_zh` 非空。缺项按未翻译处理并计入失败，
+  其余照常写入 —— 校验 index 是防张冠李戴的关键
+- 缺项不触发减半重试（那属于模型少返，不是整批不可用），留空的条目由回填补齐
+
+### 4.2 失败收敛
+
+整批不可用时（非法 JSON、被截断、HTTP 失败），把这一批对半拆开各重试一次，递归到单篇为止：
+
+- `len(batch) > 1`：对半拆分后重试
+- `len(batch) == 1`：不再重试，留空并把 `文章 {id} 翻译失败` 计入错误列表
+
+不做这层收敛，批量会把单点失败放大成整批丢失。
+
+### 4.3 逐篇规则
+
+1. 输入只用 `article.title` 与 `article.summary`，摘要截断到 1000 字符；不读 `content_text`，避免正文带来额外 token
+2. 已有 `title_zh` 的文章跳过，保证重复调用幂等
+3. 原文已是中文（`article.lang == "zh"`）时不调模型，直接写入 `title_zh = title`、`summary_zh = summary`，并计入成功篇数
+4. 缺译文一律写 `NULL`，不用空串
 
 ## 5. 采集管线接线
 
-`app/services/flow.py` 的 `collect` 分支，在现有抽取循环之后追加一段翻译循环，形态与抽取一致：
+`app/services/flow.py` 的 `collect` 分支，在现有抽取循环之后追加一段翻译，形态与抽取一致：
 
 - 只处理本轮新增文章（沿用 `articles_repo.list_new_since(db, started)`）
-- 单篇失败只记一条 `文章 {id} 翻译失败` 到 `errors`，不中断整轮；`partial` 状态语义不变
+- 整批交给 `translate_articles`，切批与重试都在 service 内部
+- 失败消息并入 `errors`，不中断整轮；`partial` 状态语义不变
 - 开关：`Settings.translate_enabled`（默认 `true`），关闭后整段跳过
-- 预算：`Settings.llm_translate_max_tokens`（默认 1500）
 
 ## 6. 存量回填
 
 新增 `backend/scripts/backfill_translations.py`：
 
-- 取 `title_zh` 为空的文章，逐篇调用同一个 `translate_article`
+- 取 `title_zh IS NULL` 的文章，整批交给同一个 `translate_articles`，与采集共用切批、减半重试、index 校验
 - 打印进度与失败清单，支持 `--limit`
-- 与采集流程共用 service，不重复实现提示词与解析
+- 失败不写库，因此脚本可反复执行，只补未完成的
 
 ## 7. API 变更（增量）
 
@@ -107,7 +129,7 @@
 
 后端（`pytest`）：
 
-- `translator`：注入 fake provider 返回合法 JSON → 两列写入；返回非法 JSON / 抛错 → 不写库且不抛；已是中文 → 直接落原文；重复调用不覆盖已有译文
+- `translator`：一批 10 篇只调用一次模型（fake provider 计数）且全部写入；返回的 `index` 缺项时已返回的照写、缺的计入失败；非法 JSON / 截断 → 自动对半重试，最终单篇失败只影响该篇；已是中文 → 直接落原文；重复调用不覆盖已有译文
 - `flow`：采集分支对新增文章调用翻译（fake provider），翻译失败时 run_logs 状态仍为 `partial` 而非 `failed`
 - `serializers`：`article_out` 带出 `title_zh` / `summary_zh`
 - `ensure_schema`：老库（无 `title_zh`）能被补上两列
@@ -120,15 +142,17 @@
 
 | 风险 | 应对 |
 | --- | --- |
-| 采集时长增加（当前 92 篇抽取约 4 分钟，翻译再叠加一遍调用） | 先按逐篇实现并实测；若单轮超过可接受时长，再改为批量合并请求 |
-| 模型返回非法 JSON 或截断 | 丢弃该篇，回填命令可重复执行补齐 |
+| 采集时长增加（当前 92 篇抽取约 4 分钟，翻译再叠加） | 批量调用：92 篇约 10 次请求，实测若仍偏长再调大 `TRANSLATE_BATCH_SIZE` |
+| 模型返回非法 JSON 或截断 | 自适应减半重试至单篇；单篇失败只影响该篇，回填命令可重复执行补齐 |
+| 批量放大单点失败 | 递减重试收敛到单篇，失败面不扩散 |
+| 译文与文章对错号 | 输出强制带 `index`，逐条校验是否落在本批内且不重复 |
 | 存量 92 篇暂无中文 | 部署后跑一次回填脚本，前端在此之前回落原文，不影响可用性 |
 | 翻译改变摘要长度导致列表观感变化 | 摘要限定 ≤120 字并两行截断，容器高度固定，不因内容变长 |
 
 ## 12. 迭代计划
 
 1. 数据列 + `ensure_schema` 验证
-2. 翻译 service + 单测
+2. 翻译 service（切批 + 减半重试 + index 校验）+ 单测
 3. 采集管线接线 + 回填脚本
 4. 前端中文展示 + 滚动约束 + 单测
 5. 服务器部署并跑回填
