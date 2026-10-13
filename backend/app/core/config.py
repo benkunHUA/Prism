@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     llm_brief_max_tokens: int = 3000
     llm_daily_max_tokens: int = 12000
     llm_extract_max_tokens: int = 4000
+    llm_translate_max_tokens: int = 3000
     # DeepSeek 推理模型（如 deepseek-v4-flash）默认会把预算消耗在 reasoning 上；
     # 采集/简报类任务不需要思维链，默认关闭。设为 auto 则交回模型决定。
     llm_thinking: str = "disabled"
@@ -38,6 +39,9 @@ class Settings(BaseSettings):
     max_analysis_input_chars: int = 6000
     top_articles_per_analysis: int = 30
     extract_enabled: bool = True
+    # 译文（标题 + 摘要）在采集落库阶段生成；批量调用，一批多少篇
+    translate_enabled: bool = True
+    translate_batch_size: int = 10
     market_provider: str = "eastmoney"
     # 格式 "类别|名称=代码"，逗号分隔；eastmoney 用 secid，stooq 用其符号。
     # 类别取值与前端 ASSET_CLASSES 对齐：index/rate/fx/commodity/volatility/crypto/equity
