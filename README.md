@@ -141,3 +141,20 @@ uv run python scripts/find_secid.py 黄金 白银 --class commodity --count 5
 - `GET|POST /api/sources`、`PATCH|DELETE /api/sources/{id}`、`POST /api/sources/{id}/test`
 - `GET|POST /api/tasks`、`PATCH|DELETE /api/tasks/{id}`、`POST /api/tasks/{id}/run`
 - `GET /api/logs`
+
+## 部署（单端口）
+
+后端可以直接把前端构建产物挂到同一个端口，免 CORS、免反向代理：
+
+```bash
+cd frontend && npm run build                     # 产物在 frontend/dist
+cd ../backend
+export STATIC_DIR=../frontend/dist
+export AUTH_USER=aurora AUTH_PASSWORD=<访问口令>
+uv run uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 1
+```
+
+- `STATIC_DIR` 留空则只提供 API（本地开发走 Vite 代理）；`/assets/*` 走静态文件，
+  其余未命中路径回落 `index.html`，`/api/*` 未命中仍返回 404。
+- `AUTH_PASSWORD` 非空即对整站启用 HTTP Basic 鉴权；留空表示公开访问。
+- **`--workers 1` 是硬要求**：APScheduler 是进程内调度，多 worker 会让采集重复触发。

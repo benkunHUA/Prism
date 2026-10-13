@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 
@@ -17,6 +18,8 @@ from app.api import (  # noqa: F401
     routes_sources,
     routes_tasks,
 )
+from app.api.security import BasicAuthMiddleware
+from app.api.static_site import mount_spa
 from app.core.config import Settings, get_settings
 from app.core.database import make_engine, make_session_factory
 from app.core.schema import ensure_schema
@@ -48,6 +51,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = session_factory
+    app.add_middleware(
+        BasicAuthMiddleware, user=settings.auth_user, password=settings.auth_password
+    )
 
     app.include_router(routes_health.router)
     app.include_router(routes_dashboard.router)
@@ -60,6 +66,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(routes_boards.router)
     app.include_router(routes_moderations.router)
     app.include_router(routes_geo.router)
+    if settings.static_dir and Path(settings.static_dir).is_dir():
+        mount_spa(app, settings.static_dir)
     return app
 
 

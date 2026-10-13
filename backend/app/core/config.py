@@ -8,6 +8,11 @@ class Settings(BaseSettings):
 
     app_name: str = "Aurora API"
     db_path: str = "data/aurora.db"
+    # 部署时把前端构建产物挂到根路径；留空则只提供 API（本地开发用 Vite）
+    static_dir: str = ""
+    # 整站访问口令；auth_password 留空即关闭鉴权
+    auth_user: str = "aurora"
+    auth_password: str = ""
 
     llm_provider: str = "deepseek"
     deepseek_api_key: str = ""
