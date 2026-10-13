@@ -130,6 +130,20 @@ uv run python scripts/find_secid.py 黄金 白银 --class commodity --count 5
 
 实测 Stooq 免费接口已失效、Yahoo 在当前网络不可用；`MARKET_PROVIDER=stooq` 仍保留为备选。行情抓取失败只记日志，不影响采集/分析。
 
+## 中文译文
+
+文章标题与摘要在采集落库阶段批量翻译（`translate_enabled` 开关、`translate_batch_size` 批大小，
+一批一次模型调用），写入 `articles.title_zh` / `articles.summary_zh`；缺译文时前端回落显示原文。
+译文只做翻译与压缩，不补充原文没有的信息；原文已是中文的条目直接落原文，不调模型。
+
+存量文章用下面这条命令补齐，可反复执行（只处理 `title_zh IS NULL` 的条目）：
+
+```bash
+cd backend && uv run python scripts/backfill_translations.py
+```
+
+老库启动时由 `ensure_schema` 自动补上这两列，不需要手工迁移。
+
 ## 主要 API
 
 - `GET /api/dashboard/summary` 仪表盘统计
