@@ -10,6 +10,11 @@ export const MAP_BOARD_STYLE = {
   fallbackColor: "#64748b",
   mapPadding: 8,
   stripPadding: 10,
+  // 地区面板列表容器：与地图卡片（height 520）对齐，超出时容器内滚动
+  listMaxHeight: 440,
+  listMinHeight: 240,
+  // 条目摘要最多显示几行
+  summaryLines: 2,
 } as const;
 
 export const CHIP_STYLE = {
