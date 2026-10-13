@@ -18,7 +18,9 @@ from app.api import (  # noqa: F401
     routes_tasks,
 )
 from app.core.config import Settings, get_settings
-from app.core.database import Base, make_engine, make_session_factory
+from app.core.database import make_engine, make_session_factory
+from app.core.schema import ensure_schema
+from app.repositories import logs as logs_repo
 from app.services.scheduler import SchedulerManager
 from app.services.seed import seed_defaults
 
@@ -26,7 +28,7 @@ from app.services.seed import seed_defaults
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.db_path)
-    Base.metadata.create_all(engine)
+    ensure_schema(engine)
     session_factory = make_session_factory(engine)
     scheduler = SchedulerManager(session_factory, settings) if settings.scheduler_enabled else None
 
@@ -34,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_app: FastAPI):
         with session_factory() as db:
             seed_defaults(db, settings)
+            logs_repo.fail_unfinished_runs(db)
         if scheduler:
             scheduler.start()
         yield

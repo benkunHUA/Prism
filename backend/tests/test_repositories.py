@@ -70,3 +70,19 @@ def test_tasks_and_logs(db):
     db.refresh(lg)
     assert lg.status == "success" and lg.new_count == 2
     assert logs.list_logs(db, limit=5)[0].id == lg.id
+
+
+def test_fail_unfinished_runs_closes_stale_only(db):
+    t = tasks.create_task(db, name="采集", kind="collect", category=None, cron="0 */4 * * *")
+    stale = logs.create_log(db, t.id)
+    done = logs.create_log(db, t.id)
+    logs.finish_log(db, done, status="success")
+
+    assert logs.fail_unfinished_runs(db) == 1
+
+    db.refresh(stale)
+    db.refresh(done)
+    assert stale.status == "failed"
+    assert stale.finished_at is not None
+    assert stale.error
+    assert done.status == "success"
