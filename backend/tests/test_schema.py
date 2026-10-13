@@ -48,3 +48,35 @@ def test_ensure_schema_creates_tables_on_fresh_db(tmp_path):
     assert ensure_schema(engine) == []
     assert "articles" in inspect(engine).get_table_names()
     engine.dispose()
+
+
+# 旧版本 articles 表：没有翻译功能引入的 title_zh / summary_zh。
+LEGACY_ARTICLES_DDL = """
+CREATE TABLE articles (
+    id INTEGER NOT NULL PRIMARY KEY,
+    source_id INTEGER,
+    category VARCHAR(20) NOT NULL,
+    url VARCHAR(2000) NOT NULL UNIQUE,
+    title VARCHAR(500) NOT NULL,
+    summary TEXT NOT NULL,
+    content_text TEXT NOT NULL,
+    published_at DATETIME,
+    fetched_at DATETIME NOT NULL,
+    dedupe_hash VARCHAR(64) NOT NULL,
+    lang VARCHAR(10) NOT NULL
+)
+"""
+
+
+def test_ensure_schema_backfills_translation_columns(tmp_path):
+    engine = make_engine(str(tmp_path / "legacy_articles.db"))
+    with engine.begin() as conn:
+        conn.execute(text(LEGACY_ARTICLES_DDL))
+
+    added = ensure_schema(engine)
+
+    assert "articles.title_zh" in added
+    assert "articles.summary_zh" in added
+    columns = {c["name"] for c in inspect(engine).get_columns("articles")}
+    assert {"title_zh", "summary_zh"} <= columns
+    engine.dispose()

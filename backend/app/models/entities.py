@@ -59,6 +59,9 @@ class Article(Base):
     url: Mapped[str] = mapped_column(String(2000), unique=True)
     title: Mapped[str] = mapped_column(String(500))
     summary: Mapped[str] = mapped_column(Text, default="")
+    # 译文；缺译文为 NULL，展示层回落原文
+    title_zh: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    summary_zh: Mapped[str | None] = mapped_column(Text, nullable=True)
     content_text: Mapped[str] = mapped_column(Text, default="")
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
