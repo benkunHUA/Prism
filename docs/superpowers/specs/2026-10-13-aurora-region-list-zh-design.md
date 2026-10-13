@@ -33,7 +33,9 @@
 `articles` 增加两列，均可空，不改现有字段语义：
 
 - `title_zh: String(500) | None`
-- `summary_zh: Text | None`（默认空串亦可，取值时按空处理）
+- `summary_zh: Text | None`
+
+两列无译文时一律为 `NULL`（不用空串），前端按 `null` 回落。
 
 迁移方式：不加迁移脚本，沿用 `backend/app/core/schema.py` 的 `ensure_schema` —— 启动时 `create_all` 之后比对列并 `ALTER TABLE ADD COLUMN`，幂等。新增列可空，不会给存量行填错值。
 
@@ -46,7 +48,7 @@
 
 行为约定：
 
-1. 输入只用 `article.title` 与 `article.summary`（截断到 `max_analysis_input_chars` 级别的上限），不读 `content_text`，避免正文带来额外 token。
+1. 输入只用 `article.title` 与 `article.summary`，摘要截断到 1000 字符；不读 `content_text`，避免正文带来额外 token。
 2. 要求模型返回 JSON `{"title_zh": "...", "summary_zh": "..."}`，失败即放弃本篇（不写库、不抛异常给调用方），由回填命令兜底重试。
 3. 已有 `title_zh` 的文章直接跳过，保证重复调用幂等。
 4. 输出为空或被截断（复用 `LLMResponseError` 判定）时不写库。
@@ -57,7 +59,7 @@
 `app/services/flow.py` 的 `collect` 分支，在现有抽取循环之后追加一段翻译循环，形态与抽取一致：
 
 - 只处理本轮新增文章（沿用 `articles_repo.list_new_since(db, started)`）
-- 单篇失败只把消息追加进 `errors`，不中断整轮；`partial` 状态语义不变
+- 单篇失败只记一条 `文章 {id} 翻译失败` 到 `errors`，不中断整轮；`partial` 状态语义不变
 - 开关：`Settings.translate_enabled`（默认 `true`），关闭后整段跳过
 - 预算：`Settings.llm_translate_max_tokens`（默认 1500）
 
@@ -83,7 +85,7 @@
 
 `RegionPanel` 的新闻列表容器加固定最大高度 + 内部滚动，高度与地图卡片对齐：
 
-- 常量放 `src/constants/mapBoard.ts`（`MAP_BOARD_STYLE.listMaxHeight`），不写死在组件里
+- 常量放 `src/constants/mapBoard.ts`（`MAP_BOARD_STYLE.listMaxHeight`，默认 440：地图 520 减去卡片头与内边距），不写死在组件里
 - 头部（标题 + 返回按钮）留在容器外，不随列表滚动
 - 列表为空/加载中时高度不塌陷，避免面板跳动
 
