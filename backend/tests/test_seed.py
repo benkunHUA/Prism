@@ -1,7 +1,8 @@
 from app.core.config import Settings
 from app.core.geo import REGION_MAP
 from app.models.entities import Source
-from app.services.seed import seed_defaults
+from app.repositories.sources import create_source
+from app.services.seed import add_missing_seed_sources, load_seed_sources, seed_defaults
 
 
 def test_seed_defaults_sets_valid_source_regions(db):
@@ -18,3 +19,23 @@ def test_seed_defaults_sets_valid_source_regions(db):
 def test_seed_defaults_skips_when_sources_exist(db):
     seed_defaults(db, Settings(_env_file=None))
     assert seed_defaults(db, Settings(_env_file=None)) is False
+
+
+def test_seed_covers_china_and_asia(db):
+    regions = {item["region"] for item in load_seed_sources()}
+    assert {"cn", "jp", "kr", "vn", "id", "ph", "th"} <= regions
+
+
+def test_add_missing_seed_sources_only_adds_new(db):
+    seeds = load_seed_sources()
+    kept = seeds[0]
+    create_source(db, name="已有源", url=kept["url"], feed_type="rss",
+                  lang="en", region=kept["region"], categories=["politics"])
+
+    added = add_missing_seed_sources(db)
+
+    assert len(added) == len(seeds) - 1
+    assert kept["name"] not in added
+    urls = [url for (url,) in db.query(Source.url).all()]
+    assert len(urls) == len(set(urls)) == len(seeds)
+    assert add_missing_seed_sources(db) == []          # 再跑一次无新增

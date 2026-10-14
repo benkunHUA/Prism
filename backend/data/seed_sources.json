@@ -8,5 +8,17 @@
   {"name": "英格兰银行新闻", "url": "https://www.bankofengland.co.uk/rss/news", "feed_type": "rss", "lang": "en", "region": "gb", "categories": ["economy", "finance"]},
   {"name": "美国国防部新闻", "url": "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=20", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["military"]},
   {"name": "英国国防部 GOV.UK", "url": "https://www.gov.uk/government/organisations/ministry-of-defence.atom", "feed_type": "rss", "lang": "en", "region": "gb", "categories": ["military"]},
-  {"name": "世界银行新闻", "url": "https://www.worldbank.org/en/news/all?format=feed", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["economy"]}
+  {"name": "世界银行新闻", "url": "https://www.worldbank.org/en/news/all?format=feed", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["economy"]},
+  {"name": "中国新闻网 滚动", "url": "https://www.chinanews.com.cn/rss/scroll-news.xml", "feed_type": "rss", "lang": "zh", "region": "cn", "categories": ["politics", "economy"]},
+  {"name": "新华社 时政", "url": "http://www.news.cn/politics/news_politics.xml", "feed_type": "rss", "lang": "zh", "region": "cn", "categories": ["politics"]},
+  {"name": "界面新闻", "url": "https://a.jiemian.com/index.php?m=article&a=rss", "feed_type": "rss", "lang": "zh", "region": "cn", "categories": ["finance", "economy"]},
+  {"name": "CGTN 世界", "url": "https://www.cgtn.com/subscribe/rss/section/world.xml", "feed_type": "rss", "lang": "en", "region": "cn", "categories": ["politics"]},
+  {"name": "NHK 新闻", "url": "https://www.nhk.or.jp/rss/news/cat0.xml", "feed_type": "rss", "lang": "ja", "region": "jp", "categories": ["politics"]},
+  {"name": "Japan Today", "url": "https://japantoday.com/feed", "feed_type": "rss", "lang": "en", "region": "jp", "categories": ["politics"]},
+  {"name": "韩联社 英文", "url": "https://en.yna.co.kr/RSS/news.xml", "feed_type": "rss", "lang": "en", "region": "kr", "categories": ["politics", "economy"]},
+  {"name": "韩国时报 政治", "url": "https://www.koreatimes.co.kr/www/rss/nation.xml", "feed_type": "rss", "lang": "en", "region": "kr", "categories": ["politics"]},
+  {"name": "VnExpress 英文", "url": "https://e.vnexpress.net/rss/news.rss", "feed_type": "rss", "lang": "en", "region": "vn", "categories": ["politics", "economy"]},
+  {"name": "安塔拉通讯社 英文", "url": "https://en.antaranews.com/rss/news.xml", "feed_type": "rss", "lang": "en", "region": "id", "categories": ["politics", "economy"]},
+  {"name": "Rappler 菲律宾", "url": "https://www.rappler.com/feed/", "feed_type": "rss", "lang": "en", "region": "ph", "categories": ["politics"]},
+  {"name": "Thai Enquirer", "url": "https://www.thaienquirer.com/feed/", "feed_type": "rss", "lang": "en", "region": "th", "categories": ["politics"]}
 ]
