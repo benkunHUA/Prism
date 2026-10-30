@@ -70,6 +70,25 @@ def test_finance_context_compares_with_previous_batch(db):
     assert "WTI原油" in text and "布伦特原油" in text
 
 
+def test_finance_oil_context_falls_back_to_previous_quote(db):
+    snapshots.insert_snapshots(db, [
+        dict(asset_code="102.CL00Y", asset_name="NYMEX原油", asset_class="commodity",
+             price=102.75, change_pct=0.74, captured_at=datetime(2026, 10, 11, 21, 0),
+             batch_id="b2", source="eastmoney"),
+        dict(asset_code="102.CL00Y", asset_name="NYMEX原油", asset_class="commodity",
+             price=101.58, change_pct=-1.64, captured_at=datetime(2026, 10, 11, 20, 0),
+             batch_id="b1", source="eastmoney"),
+        dict(asset_code="112.B00Y", asset_name="布伦特原油", asset_class="commodity",
+             price=110.4, change_pct=-1.15, captured_at=datetime(2026, 10, 11, 20, 0),
+             batch_id="b1", source="eastmoney"),
+    ])
+
+    text = build_board_context(db, spec_for("finance"))
+
+    assert "布伦特原油 | 价格 110.4 | 上轮快照" in text
+    assert "WTI-Brent 价差 -7.65（含上轮快照）" in text
+
+
 def test_politics_context_carries_stances(db):
     _seed_structured(db)
     text = build_board_context(db, spec_for("politics"))

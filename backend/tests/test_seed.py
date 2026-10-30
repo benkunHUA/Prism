@@ -42,7 +42,6 @@ def test_seed_covers_international_oil_sources():
 
     assert "https://www.eia.gov/rss/todayinenergy.xml" in urls
     assert "https://oilprice.com/rss/main" in urls
-    assert "https://www.investing.com/rss/news_11.rss" in urls
 
 
 def test_add_missing_seed_sources_only_adds_new(db):

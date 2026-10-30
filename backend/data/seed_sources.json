@@ -7,7 +7,6 @@
   {"name": "美国能源信息署 EIA", "url": "https://www.eia.gov/rss/press_rss.xml", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["economy", "finance"]},
   {"name": "美国能源信息署 今日能源", "url": "https://www.eia.gov/rss/todayinenergy.xml", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["finance", "economy"]},
   {"name": "OilPrice 原油与能源", "url": "https://oilprice.com/rss/main", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["finance"]},
-  {"name": "Investing.com 商品期货", "url": "https://www.investing.com/rss/news_11.rss", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["finance"]},
   {"name": "英格兰银行新闻", "url": "https://www.bankofengland.co.uk/rss/news", "feed_type": "rss", "lang": "en", "region": "gb", "categories": ["economy", "finance"]},
   {"name": "美国国防部新闻", "url": "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=20", "feed_type": "rss", "lang": "en", "region": "us", "categories": ["military"]},
   {"name": "英国国防部 GOV.UK", "url": "https://www.gov.uk/government/organisations/ministry-of-defence.atom", "feed_type": "rss", "lang": "en", "region": "gb", "categories": ["military"]},

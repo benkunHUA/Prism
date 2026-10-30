@@ -34,15 +34,19 @@ export default function OilSnapshotCard({ items, loading = false }: Props) {
               value: quote.price.toFixed(2),
               hint: (
                 <span className={changeClass(quote.changePct)}>
-                  本批次 {formatChangePct(quote.changePct)}
-                  {quote.previousPrice === null ? "" : ` · 上轮 ${quote.previousPrice.toFixed(2)}`}
+                  {quote.stale ? "上轮快照" : "本批次"} {formatChangePct(quote.changePct)}
+                  {quote.stale
+                    ? ` · ${formatDateTime(quote.capturedAt)}`
+                    : quote.previousPrice === null
+                      ? ""
+                      : ` · 上轮 ${quote.previousPrice.toFixed(2)}`}
                 </span>
               ),
             })),
             {
               label: TEXT.oilSpread,
               value: summary.spread === null ? "—" : summary.spread.toFixed(2),
-              hint: TEXT.oilSpreadHint,
+              hint: summary.hasStaleQuote ? `${TEXT.oilSpreadHint}（含上轮）` : TEXT.oilSpreadHint,
             },
             {
               label: TEXT.oilQuoteTime,

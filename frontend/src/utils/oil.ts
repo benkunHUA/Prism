@@ -8,6 +8,8 @@ export interface OilQuote {
   changePct: number | null;
   previousPrice: number | null;
   capturedAt: string;
+  batchId: string | null;
+  stale: boolean;
 }
 
 export interface OilSummary {
@@ -15,6 +17,7 @@ export interface OilSummary {
   spread: number | null;
   batchId: string | null;
   capturedAt: string | null;
+  hasStaleQuote: boolean;
 }
 
 export function summarizeOil(items: SnapshotItem[]): OilSummary {
@@ -36,7 +39,8 @@ export function summarizeOil(items: SnapshotItem[]): OilSummary {
   }
 
   const quotes = OIL_ASSETS.flatMap((asset) => {
-    const item = latest.get(asset.code);
+    const latestItem = latest.get(asset.code);
+    const item = latestItem ?? previous.get(asset.code);
     if (!item || item.price === null) return [];
     return [
       {
@@ -44,8 +48,10 @@ export function summarizeOil(items: SnapshotItem[]): OilSummary {
         label: asset.label,
         price: item.price,
         changePct: item.change_pct,
-        previousPrice: previous.get(asset.code)?.price ?? null,
+        previousPrice: latestItem ? previous.get(asset.code)?.price ?? null : null,
         capturedAt: item.captured_at,
+        batchId: item.batch_id,
+        stale: !latestItem,
       },
     ];
   });
@@ -56,5 +62,6 @@ export function summarizeOil(items: SnapshotItem[]): OilSummary {
     spread: wti && brent ? wti.price - brent.price : null,
     batchId: latestBatch ?? null,
     capturedAt: quotes[0]?.capturedAt ?? null,
+    hasStaleQuote: quotes.some((quote) => quote.stale),
   };
 }

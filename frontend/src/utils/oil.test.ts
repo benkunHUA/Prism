@@ -45,4 +45,19 @@ describe("summarizeOil", () => {
     expect(result.quotes.map((quote) => quote.code)).toEqual(["102.CL00Y"]);
     expect(result.spread).toBeNull();
   });
+
+  it("falls back to the previous valid quote and marks it stale", () => {
+    const result = summarizeOil([
+      snapshot("102.CL00Y", 102.75, "b2"),
+      snapshot("112.B00Y", 0, "b2"),
+      snapshot("112.B00Y", 110.4, "b1"),
+    ]);
+
+    expect(result.quotes.find((quote) => quote.code === "112.B00Y")).toMatchObject({
+      price: 110.4,
+      stale: true,
+    });
+    expect(result.spread).toBeCloseTo(-7.65);
+    expect(result.hasStaleQuote).toBe(true);
+  });
 });

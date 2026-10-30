@@ -114,30 +114,44 @@ def _oil_block(db: Session) -> str:
     if batches is None:
         return ""
     _, latest, previous = batches
-    by_code = {
+    latest_by_code = {
         snap.asset_code: snap
         for snap in latest.values()
         if snap.price is not None and snap.price > 0
     }
-    rows = [by_code[code] for code in OIL_ASSETS if code in by_code]
+    previous_by_code = {
+        snap.asset_code: snap
+        for snap in previous.values()
+        if snap.price is not None and snap.price > 0
+    }
+    rows = [
+        (code, latest_by_code.get(code) or previous_by_code.get(code))
+        for code in OIL_ASSETS
+    ]
+    rows = [(code, snap) for code, snap in rows if snap is not None]
     if not rows:
         return ""
 
     lines = ["### 国际原油（美元/桶）"]
-    for snap in rows:
+    has_stale_quote = False
+    for code, snap in rows:
+        is_stale = code not in latest_by_code
+        has_stale_quote = has_stale_quote or is_stale
+        timing = "上轮快照" if is_stale else "本批次"
         line = (
             f"- {OIL_ASSETS.get(snap.asset_code, snap.asset_name)} | "
-            f"价格 {snap.price} | 本批次 {_fmt_pct(snap.change_pct)}"
+            f"价格 {snap.price} | {timing} {_fmt_pct(snap.change_pct)}"
         )
         prev = previous.get(snap.asset_name)
-        if prev is not None and prev.price and prev.price > 0:
+        if not is_stale and prev is not None and prev.price and prev.price > 0:
             line += f" | 上轮价格 {prev.price} | 上轮涨跌 {_fmt_pct(prev.change_pct)}"
         lines.append(line)
 
-    wti = by_code.get("102.CL00Y")
-    brent = by_code.get("112.B00Y")
+    wti = latest_by_code.get("102.CL00Y") or previous_by_code.get("102.CL00Y")
+    brent = latest_by_code.get("112.B00Y") or previous_by_code.get("112.B00Y")
     if wti is not None and brent is not None:
-        lines.append(f"- WTI-Brent 价差 {wti.price - brent.price:+.2f}")
+        suffix = "（含上轮快照）" if has_stale_quote else ""
+        lines.append(f"- WTI-Brent 价差 {wti.price - brent.price:+.2f}{suffix}")
     return "\n".join(lines)
 
 
