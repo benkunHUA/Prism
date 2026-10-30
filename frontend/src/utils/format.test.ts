@@ -5,6 +5,7 @@ import {
   formatApiDetail,
   formatChangePct,
   formatDateTime,
+  formatEventTime,
   healthLevel,
 } from "./format";
 
@@ -74,5 +75,25 @@ describe("formatDateTime", () => {
   it("renders ISO strings as local minutes", () => {
     expect(formatDateTime("2026-10-11T08:05:00")).toBe("2026-10-11 08:05");
     expect(formatDateTime(null)).toBe("—");
+  });
+});
+
+describe("formatEventTime", () => {
+  it("prefers the actual event time", () => {
+    expect(formatEventTime("2026-10-30T13:40:00", "2026-10-30T14:00:00")).toEqual({
+      text: "2026-10-30 13:40",
+      estimated: false,
+    });
+  });
+
+  it("labels the fallback time instead of presenting it as event time", () => {
+    expect(formatEventTime(null, "2026-10-30T14:00:00")).toEqual({
+      text: "收录于 2026-10-30 14:00",
+      estimated: true,
+    });
+  });
+
+  it("never leaves time blank", () => {
+    expect(formatEventTime(null, null)).toEqual({ text: "时间待核实", estimated: true });
   });
 });

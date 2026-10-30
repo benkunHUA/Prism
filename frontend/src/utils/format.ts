@@ -35,6 +35,15 @@ export function formatDateTime(iso: string | null | undefined): string {
   return iso.replace("T", " ").slice(0, 16);
 }
 
+export function formatEventTime(
+  occurredAt: string | null | undefined,
+  fallbackAt: string | null | undefined,
+): { text: string; estimated: boolean } {
+  if (occurredAt) return { text: formatDateTime(occurredAt), estimated: false };
+  if (fallbackAt) return { text: `收录于 ${formatDateTime(fallbackAt)}`, estimated: true };
+  return { text: "时间待核实", estimated: true };
+}
+
 export function formatNumber(value: number | null | undefined, unit = ""): string {
   if (value === null || value === undefined) return "—";
   return `${value}${unit}`;

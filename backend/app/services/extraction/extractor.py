@@ -58,12 +58,13 @@ def _write_regions(db: Session, raw_regions: list[str], article_id: int) -> None
 
 
 def _write_timeline(db: Session, category: str, items: list[TimelineItemIn],
-                    article_id: int | None, stats: dict) -> None:
+                    article_id: int | None, stats: dict, fallback_at=None) -> None:
     for item in items:
         verification = event_auto_verification(category, item.subtype, item.summary)
         _, created = timeline_repo.upsert_event(
             db, category=category, subtype=item.subtype, actor=item.actor,
-            region=item.region, occurred_at=item.occurred_at, summary=item.summary,
+            region=item.region, occurred_at=item.occurred_at or fallback_at,
+            summary=item.summary,
             importance=item.importance, verification_status=verification,
             article_id=article_id, group_key=item.group_key,
             merge_key=_timeline_merge_key(category, item),
@@ -95,6 +96,7 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
                     settings: Settings) -> dict:
     """对单篇文章按所属板块提取并写库，返回统计。"""
     stats = {"created": 0, "updated": 0, "failed": 0}
+    fallback_at = article.published_at or article.fetched_at
     for category in _article_categories(article):
         model_cls = CATEGORY_MODEL.get(category)
         if model_cls is None:
@@ -114,7 +116,7 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
             continue
         _write_regions(db, parsed.regions, article.id)
         if category == "politics":
-            _write_timeline(db, "politics", parsed.events, article.id, stats)
+            _write_timeline(db, "politics", parsed.events, article.id, stats, fallback_at)
             for stance in parsed.stances:
                 stances_repo.create_stance(
                     db, topic=stance.topic, actor=stance.actor,
@@ -124,10 +126,10 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
                 )
                 stats["created"] += 1
         elif category == "military":
-            _write_timeline(db, "military", parsed.conflicts, article.id, stats)
+            _write_timeline(db, "military", parsed.conflicts, article.id, stats, fallback_at)
             _write_weapons(db, parsed.weapons, article.id, stats)
         elif category == "economy":
-            _write_timeline(db, "economy", parsed.policies, article.id, stats)
+            _write_timeline(db, "economy", parsed.policies, article.id, stats, fallback_at)
             for item in parsed.indicators:
                 merge_key = _sha(normalize_title(item.indicator) + "|"
                                  + normalize_title(item.region) + "|" + item.period)
@@ -140,5 +142,5 @@ def extract_article(db: Session, article: Article, provider: ChatProvider,
                 )
                 stats["created" if created else "updated"] += 1
         elif category == "finance":
-            _write_timeline(db, "finance", parsed.events, article.id, stats)
+            _write_timeline(db, "finance", parsed.events, article.id, stats, fallback_at)
     return stats

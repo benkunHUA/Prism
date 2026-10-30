@@ -1,9 +1,10 @@
+import { ClockCircleOutlined } from "@ant-design/icons";
 import { Card, Select, Space, Tag, Timeline } from "antd";
 import { useMemo, useState } from "react";
 
 import type { TimelineEvent } from "../api/types";
 import { IMPORTANCE_COLORS, TEXT } from "../constants/options";
-import { formatDateTime } from "../utils/format";
+import { formatEventTime } from "../utils/format";
 
 import EmptyHint from "./EmptyHint";
 
@@ -43,23 +44,30 @@ export default function TimelineList({ items, emptyText, subtitleOptions = [] }:
         />
       ) : null}
       <Timeline
-        items={visible.map((event) => ({
-          color: event.importance === "high" ? "red" : "blue",
-          children: (
-            <Card size="small" variant="outlined">
-              <Space size={6} wrap style={{ marginBottom: 4 }}>
-                <Tag color="geekblue">{event.subtype}</Tag>
-                {event.actor ? <span className="aurora-muted">{event.actor}</span> : null}
-                {event.region ? <span className="aurora-muted">· {event.region}</span> : null}
-                <span className="aurora-muted">· {formatDateTime(event.occurred_at)}</span>
-                <Tag color={IMPORTANCE_COLORS[event.importance] ?? "default"}>
-                  {event.importance === "high" ? "高" : event.importance === "low" ? "低" : "中"}
-                </Tag>
-              </Space>
-              <div>{event.summary}</div>
-            </Card>
-          ),
-        }))}
+        items={visible.map((event) => {
+          const when = formatEventTime(event.occurred_at, event.updated_at);
+          return {
+            color: event.importance === "high" ? "red" : "blue",
+            children: (
+              <Card size="small" variant="outlined">
+                <Space size={6} wrap style={{ marginBottom: 4 }}>
+                  <Space size={4}>
+                    <ClockCircleOutlined className="aurora-muted" />
+                    <strong>{when.text}</strong>
+                  </Space>
+                  {when.estimated ? <Tag color="orange">非事件时间</Tag> : null}
+                  <Tag color="geekblue">{event.subtype}</Tag>
+                  <Tag color={IMPORTANCE_COLORS[event.importance] ?? "default"}>
+                    {event.importance === "high" ? "高" : event.importance === "low" ? "低" : "中"}
+                  </Tag>
+                  {event.actor ? <span className="aurora-muted">{event.actor}</span> : null}
+                  {event.region ? <span className="aurora-muted">· {event.region}</span> : null}
+                </Space>
+                <div>{event.summary}</div>
+              </Card>
+            ),
+          };
+        })}
       />
     </Space>
   );

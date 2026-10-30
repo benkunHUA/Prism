@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.models.entities import Category
 from app.repositories import indicators, snapshots, sources, stances, timeline, weapons
 
@@ -31,6 +33,22 @@ def test_timeline_upsert_and_list(db):
     assert created2 is False and row2.id == row.id
     assert row2.summary == "修正案二读通过"
     assert len(timeline.list_events(db, category="politics")) == 1
+
+
+def test_backfill_missing_event_times_uses_article_time(db):
+    art = _article(db)
+    art.published_at = datetime(2026, 10, 30, 12, 30)
+    db.commit()
+    row, _ = timeline.upsert_event(
+        db, category="politics", subtype="外交与峰会", actor="双方",
+        region="欧洲", summary="举行会晤", importance="medium",
+        verification_status="draft", article_id=art.id, group_key=None,
+        merge_key="mk-time",
+    )
+    assert row.occurred_at is None
+
+    assert timeline.backfill_missing_times(db) == 1
+    assert row.occurred_at == art.published_at
 
 
 def test_weapon_upsert_updates_not_duplicates(db):

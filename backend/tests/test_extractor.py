@@ -68,6 +68,26 @@ def test_extract_military_writes_draft_weapon(db):
     assert timeline.list_events(db, category="military")[0].verification_status == "draft"
 
 
+def test_extract_falls_back_to_article_time_when_event_time_missing(db):
+    from app.core.config import Settings
+
+    art = _make_article(db, "military", "https://example.com/m-time")
+    provider = FakeProvider(Settings(_env_file=None), {
+        "category": "military",
+        "military": {
+            "weapons": [],
+            "conflicts": [{"subtype": "冲突进展", "actor": "乌军", "region": "俄乌",
+                           "occurred_at": "", "summary": "击退多方向进攻",
+                           "importance": "high"}],
+        },
+    })
+
+    extract_article(db, art, provider, Settings(_env_file=None))
+
+    event = timeline.list_events(db, category="military")[0]
+    assert event.occurred_at == art.published_at
+
+
 def test_extract_economy_writes_confirmed_indicator(db):
     from app.core.config import Settings
 

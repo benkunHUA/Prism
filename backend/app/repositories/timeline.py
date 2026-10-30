@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.models.entities import TimelineEvent, utcnow
+from app.models.entities import Article, TimelineEvent, utcnow
 
 
 def get_event(db: Session, event_id: int) -> TimelineEvent | None:
@@ -76,3 +76,16 @@ def update_event(db: Session, row: TimelineEvent, *, summary: str | None = None,
     db.commit()
     db.refresh(row)
     return row
+
+
+def backfill_missing_times(db: Session) -> int:
+    """用关联文章发布时间补齐缺失的事件时间；无文章时回落到入库时间。"""
+    rows = db.query(TimelineEvent).filter(TimelineEvent.occurred_at.is_(None)).all()
+    for row in rows:
+        article = db.get(Article, row.article_id) if row.article_id else None
+        row.occurred_at = (
+            (article.published_at or article.fetched_at) if article else row.created_at
+        )
+    if rows:
+        db.commit()
+    return len(rows)
