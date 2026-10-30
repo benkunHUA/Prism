@@ -26,6 +26,16 @@ def test_seed_covers_china_and_asia(db):
     assert {"cn", "jp", "kr", "vn", "id", "ph", "th"} <= regions
 
 
+def test_seed_covers_ukraine_and_middle_east_conflicts():
+    seeds = load_seed_sources()
+    military = [item for item in seeds if "military" in item["categories"]]
+    urls = {item["url"] for item in military}
+
+    assert "https://www.ukrinform.net/rss/block-lastnews" in urls
+    assert "https://www.france24.com/en/middle-east/rss" in urls
+    assert "https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml" in urls
+
+
 def test_add_missing_seed_sources_only_adds_new(db):
     seeds = load_seed_sources()
     kept = seeds[0]

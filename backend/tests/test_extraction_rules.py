@@ -32,9 +32,25 @@ def test_military_schema_has_weapons():
     assert parsed.weapons[0].lifecycle_status == "研发"
 
 
+def test_blank_optional_datetime_is_accepted():
+    parsed = MilitaryExtraction.model_validate({
+        "conflicts": [{"subtype": "袭击与损失", "occurred_at": "", "summary": "遭袭"}],
+    })
+    assert parsed.conflicts[0].occurred_at is None
+
+
 def test_prompt_mentions_category_and_json():
     prompt = build_extraction_prompt("politics", title="会晤", body="正文", url="https://x.test/a")
     assert "politics" in prompt and "JSON" in prompt
+
+
+def test_prompt_uses_category_specific_timeline_field():
+    military = build_extraction_prompt("military", title="战况", body="正文", url="https://x.test/a")
+    economy = build_extraction_prompt("economy", title="政策", body="正文", url="https://x.test/a")
+
+    assert "conflicts 数组" in military
+    assert "events 数组" not in military
+    assert "policies 数组" in economy
 
 
 def test_auto_verification_rules():
