@@ -32,7 +32,14 @@ export function healthLevel(source: { enabled: boolean; error_count: number }): 
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return iso.replace("T", " ").slice(0, 16);
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(iso);
+  const date = new Date(hasZone ? iso : `${iso}Z`);
+  if (Number.isNaN(date.getTime())) return iso.replace("T", " ").slice(0, 16);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }
 
 export function formatEventTime(

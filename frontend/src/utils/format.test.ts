@@ -72,23 +72,33 @@ describe("healthLevel", () => {
 });
 
 describe("formatDateTime", () => {
-  it("renders ISO strings as local minutes", () => {
-    expect(formatDateTime("2026-10-11T08:05:00")).toBe("2026-10-11 08:05");
+  it("treats server timestamps as UTC and renders local minutes", () => {
+    const date = new Date("2026-10-11T08:05:00Z");
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const expected =
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+      `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+    expect(formatDateTime("2026-10-11T08:05:00")).toBe(expected);
     expect(formatDateTime(null)).toBe("—");
+  });
+
+  it("preserves timestamps that already include a timezone", () => {
+    expect(formatDateTime("2026-10-11T08:05:00Z")).toBe(formatDateTime("2026-10-11T08:05:00"));
   });
 });
 
 describe("formatEventTime", () => {
   it("prefers the actual event time", () => {
     expect(formatEventTime("2026-10-30T13:40:00", "2026-10-30T14:00:00")).toEqual({
-      text: "2026-10-30 13:40",
+      text: formatDateTime("2026-10-30T13:40:00"),
       estimated: false,
     });
   });
 
   it("labels the fallback time instead of presenting it as event time", () => {
     expect(formatEventTime(null, "2026-10-30T14:00:00")).toEqual({
-      text: "收录于 2026-10-30 14:00",
+      text: `收录于 ${formatDateTime("2026-10-30T14:00:00")}`,
       estimated: true,
     });
   });
