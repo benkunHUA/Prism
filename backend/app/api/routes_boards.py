@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.models.entities import utcnow
 from app.repositories import indicators as indicators_repo
 from app.repositories import snapshots as snapshots_repo
 from app.repositories import stances as stances_repo
@@ -44,10 +47,12 @@ def _stance_out(s) -> dict:
 @router.get("/categories/{category}/timeline")
 def category_timeline(category: str, subtype: str | None = None,
                       importance: str | None = None,
+                      days: int = Query(default=30, ge=1, le=3650),
                       limit: int = Query(default=100, le=200),
                       db: Session = Depends(get_db)) -> dict:
     items = timeline_repo.list_events(db, category=category, subtype=subtype,
-                                      verification="confirmed", limit=limit)
+                                      verification="confirmed", limit=limit,
+                                      since=utcnow() - timedelta(days=days))
     if importance:
         items = [e for e in items if e.importance == importance]
     return {"items": [_event_out(e) for e in items]}

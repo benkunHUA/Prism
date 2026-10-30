@@ -73,7 +73,8 @@ LLM_EXTRACT_MAX_TOKENS=4000
 
 ## 板块结构化与审核 API
 
-- `GET /api/categories/{cat}/timeline` 事件时间线
+- `GET /api/categories/{cat}/timeline?days=30` 事件时间线（默认近 30 天）
+- `GET /api/categories/{cat}/articles?days=30` 原文材料（默认按发布时间的近 30 天）
 - `GET /api/military/weapons`、`GET /api/economy/indicators`
 - `GET /api/politics/stances`、`GET /api/finance/snapshots`
 - `GET /api/moderations`、`PATCH /api/moderations/{type}/{id}`（confirm/edit/reject）

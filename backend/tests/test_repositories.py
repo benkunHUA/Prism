@@ -44,6 +44,26 @@ def test_article_insert_dedupes(db):
     assert len(articles.list_articles(db, category="economy")) == 2
 
 
+def test_article_list_filters_stale_published_dates(db):
+    src = _source(db)
+    now = datetime(2026, 10, 30, 12, 0)
+    articles.insert_articles(db, [
+        dict(source_id=src.id, category="economy", url="https://example.com/recent",
+             title="Recent", summary="", content_text="", published_at=now,
+             lang="en", dedupe_hash="recent"),
+        dict(source_id=src.id, category="economy", url="https://example.com/stale",
+             title="Stale", summary="", content_text="", published_at=datetime(2025, 3, 1),
+             lang="en", dedupe_hash="stale"),
+        dict(source_id=src.id, category="economy", url="https://example.com/unknown",
+             title="Unknown", summary="", content_text="", published_at=None,
+             lang="en", dedupe_hash="unknown"),
+    ])
+
+    rows = articles.list_articles(db, category="economy", since=datetime(2026, 10, 1))
+
+    assert {row.title for row in rows} == {"Recent", "Unknown"}
+
+
 def test_analysis_and_links(db):
     src = _source(db)
     articles.insert_articles(db, [dict(source_id=src.id, category="economy", url="https://example.com/x",

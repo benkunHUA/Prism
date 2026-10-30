@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.entities import Article, TimelineEvent, utcnow
@@ -46,7 +47,7 @@ def upsert_event(db: Session, *, category: str, subtype: str, actor: str = "",
 
 def list_events(db: Session, category: str | None = None,
                 subtype: str | None = None, verification: str | None = None,
-                limit: int = 100) -> list[TimelineEvent]:
+                limit: int = 100, since: datetime | None = None) -> list[TimelineEvent]:
     query = db.query(TimelineEvent)
     if category:
         query = query.filter(TimelineEvent.category == category)
@@ -54,6 +55,10 @@ def list_events(db: Session, category: str | None = None,
         query = query.filter(TimelineEvent.subtype == subtype)
     if verification:
         query = query.filter(TimelineEvent.verification_status == verification)
+    if since:
+        query = query.filter(
+            or_(TimelineEvent.occurred_at.is_(None), TimelineEvent.occurred_at >= since)
+        )
     return query.order_by(TimelineEvent.occurred_at.desc().nullslast(),
                           TimelineEvent.updated_at.desc()).limit(limit).all()
 

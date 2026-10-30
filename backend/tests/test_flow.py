@@ -4,12 +4,17 @@ from pathlib import Path
 
 import httpx
 
+from app.core.config import Settings
 from app.models.entities import Category
 from app.repositories import analyses, articles, indicators, logs, snapshots, sources, tasks
 from app.services.flow import run_task_flow
 from app.services.llm import ChatProvider
 
 FIXTURE = Path(__file__).parent / "data" / "fixture_feed.xml"
+
+
+def _settings(**kwargs) -> Settings:
+    return Settings(_env_file=None, max_feed_age_days=365, **kwargs)
 
 
 class FakeProvider(ChatProvider):
@@ -33,10 +38,8 @@ def _setup(db):
 
 
 def test_collect_flow_writes_log_and_brief(db):
-    from app.core.config import Settings
-
     task = _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False, translate_enabled=False)
+    settings = _settings(extract_enabled=False, translate_enabled=False)
     result = run_task_flow(
         db, task, client=_feed_client(),
         provider=FakeProvider(settings), settings=settings,
@@ -48,10 +51,8 @@ def test_collect_flow_writes_log_and_brief(db):
 
 
 def test_analyze_flow_creates_daily(db):
-    from app.core.config import Settings
-
     _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False)
+    settings = _settings(extract_enabled=False)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     articles.insert_articles(db, [
         dict(source_id=None, category="economy", url="https://example.com/x",
@@ -69,14 +70,12 @@ def test_analyze_flow_creates_daily(db):
 
 
 def test_failed_provider_marks_partial(db):
-    from app.core.config import Settings
-
     class BoomProvider(FakeProvider):
         def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
             raise RuntimeError("boom")
 
     _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False)
+    settings = _settings(extract_enabled=False)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     articles.insert_articles(db, [
         dict(source_id=None, category="military", url="https://example.com/m",
@@ -118,15 +117,13 @@ def _dual_client(tmp_path: Path):
 
 
 def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
-    from app.core.config import Settings
-
     sources.create_source(
         db, name="Fixture", url="https://example.com/rss", feed_type="rss", lang="en",
         categories=[Category.economy.value, Category.finance.value],
     )
     task = tasks.create_task(db, name="采集", kind="collect", category=None, cron="0 */4 * * *")
-    settings = Settings(
-        _env_file=None, extract_enabled=True,
+    settings = _settings(
+        extract_enabled=True,
         market_symbols="index|标普500=100.SPX",
         translate_enabled=False,
     )
@@ -141,7 +138,6 @@ def test_collect_flow_runs_extraction_and_snapshots(db, tmp_path):
 
 
 def test_collect_flow_backfills_source_region(db):
-    from app.core.config import Settings
     from app.models.entities import ArticleRegion
     from app.repositories import article_regions as regions_repo
 
@@ -153,7 +149,7 @@ def test_collect_flow_backfills_source_region(db):
     db.commit()
     task = tasks.create_task(db, name="采集", kind="collect", category=None,
                              cron="0 */4 * * *")
-    settings = Settings(_env_file=None, extract_enabled=False, translate_enabled=False)
+    settings = _settings(extract_enabled=False, translate_enabled=False)
 
     result = run_task_flow(db, task, client=_feed_client(),
                            provider=FakeProvider(settings), settings=settings)
@@ -168,10 +164,8 @@ def test_collect_flow_backfills_source_region(db):
 def test_collect_flow_translates_new_articles(db):
     import re
 
-    from app.core.config import Settings
-
     task = _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False)
+    settings = _settings(extract_enabled=False)
 
     class TranslateProvider(ChatProvider):
         name = "translate"
@@ -194,14 +188,12 @@ def test_collect_flow_translates_new_articles(db):
 
 
 def test_translate_failure_keeps_articles_and_marks_partial(db):
-    from app.core.config import Settings
-
     class BoomTranslateProvider(FakeProvider):
         def complete(self, messages, temperature=0.2, max_tokens=4000) -> str:
             raise RuntimeError("boom")
 
     task = _setup(db)
-    settings = Settings(_env_file=None, extract_enabled=False, translate_batch_size=1)
+    settings = _settings(extract_enabled=False, translate_batch_size=1)
 
     result = run_task_flow(db, task, client=_feed_client(),
                            provider=BoomTranslateProvider(settings), settings=settings)

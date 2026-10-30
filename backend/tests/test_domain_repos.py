@@ -51,6 +51,19 @@ def test_backfill_missing_event_times_uses_article_time(db):
     assert row.occurred_at == art.published_at
 
 
+def test_timeline_list_filters_stale_events(db):
+    now = datetime(2026, 10, 30, 12, 0)
+    timeline.upsert_event(db, category="military", subtype="冲突进展", occurred_at=now,
+                          verification_status="confirmed", merge_key="recent")
+    timeline.upsert_event(db, category="military", subtype="冲突进展",
+                          occurred_at=datetime(2025, 3, 1, 10, 0),
+                          verification_status="confirmed", merge_key="stale")
+
+    rows = timeline.list_events(db, category="military", since=datetime(2026, 10, 1))
+
+    assert [row.merge_key for row in rows] == ["recent"]
+
+
 def test_weapon_upsert_updates_not_duplicates(db):
     w1, c1 = weapons.upsert_weapon(db, name="X", original_name="", origin="US",
                                    weapon_type="导弹", params_text="v1",

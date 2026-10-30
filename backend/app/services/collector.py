@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import feedparser
@@ -21,6 +21,10 @@ USER_AGENT = "AuroraBot/0.1 (+personal research tool; polite fetcher)"
 
 def _clean_html(html: str) -> str:
     return BeautifulSoup(html or "", "html.parser").get_text(" ", strip=True)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _get_with_retry(client: httpx.Client, url: str, timeout: float, tries: int = 3) -> httpx.Response:
@@ -74,6 +78,14 @@ def fetch_source(source, settings: Settings, client: httpx.Client) -> tuple[list
                 title = (entry.get("title") or "").strip()
                 if not url or not title:
                     continue
+                published = None
+                if entry.get("published_parsed"):
+                    t = entry["published_parsed"]
+                    published = datetime(
+                        t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec
+                    )
+                    if published < _utcnow() - timedelta(days=settings.max_feed_age_days):
+                        continue
                 summary = _clean_html(entry.get("summary", ""))
                 content_text = summary
                 if len(content_text) < 200:
@@ -81,10 +93,6 @@ def fetch_source(source, settings: Settings, client: httpx.Client) -> tuple[list
                         client, url, min(15.0, settings.request_timeout_s)
                     )
                 content_text = content_text[: settings.max_content_chars]
-                published = None
-                if entry.get("published_parsed"):
-                    t = entry["published_parsed"]
-                    published = datetime(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
                 items.append(
                     {
                         "source_id": source.id,

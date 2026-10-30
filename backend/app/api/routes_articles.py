@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.serializers import article_out
+from app.models.entities import utcnow
 from app.repositories import articles as repo
 
 router = APIRouter(prefix="/api", tags=["articles"])
@@ -11,8 +14,10 @@ router = APIRouter(prefix="/api", tags=["articles"])
 @router.get("/categories/{category}/articles")
 def list_articles(category: str, limit: int = Query(default=30, le=100),
                   offset: int = Query(default=0, ge=0),
+                  days: int = Query(default=30, ge=1, le=3650),
                   db: Session = Depends(get_db)) -> dict:
-    items = repo.list_articles(db, category=category, limit=limit, offset=offset)
+    items = repo.list_articles(db, category=category, limit=limit, offset=offset,
+                               since=utcnow() - timedelta(days=days))
     return {"items": [article_out(a) for a in items]}
 
 

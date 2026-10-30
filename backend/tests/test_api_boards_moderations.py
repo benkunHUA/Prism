@@ -54,6 +54,20 @@ def test_board_endpoints(client):
     assert sn["items"][0]["price"] == 5980.0
 
 
+def test_board_timeline_hides_stale_events(client):
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    with client.app.state.session_factory() as db:
+        timeline.upsert_event(db, category="military", subtype="冲突进展", occurred_at=now,
+                              summary="recent", verification_status="confirmed", merge_key="recent")
+        timeline.upsert_event(db, category="military", subtype="冲突进展",
+                              occurred_at=datetime(2025, 3, 1), summary="stale",
+                              verification_status="confirmed", merge_key="stale")
+
+    items = client.get("/api/categories/military/timeline").json()["items"]
+
+    assert len(items) == 1 and items[0]["summary"] == "recent"
+
+
 def test_moderation_flow(client):
     _seed(client)
     queue = client.get("/api/moderations").json()["items"]

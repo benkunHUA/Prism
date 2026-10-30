@@ -13,6 +13,7 @@ def test_defaults():
     assert s.extract_enabled is True
     assert s.translate_enabled is True
     assert s.translate_batch_size == 10
+    assert s.max_feed_age_days == 30
     assert s.llm_translate_max_tokens == 3000
     assert s.market_provider == "eastmoney"
     assert s.market_symbols == ""

@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 
+from app.core.config import Settings
 from app.models.entities import Category
 from app.repositories import articles, sources
 from app.services import collector
@@ -20,18 +23,22 @@ def _mock_client():
     return httpx.Client(transport=transport)
 
 
+def _settings(max_feed_age_days: int = 30) -> Settings:
+    return Settings(_env_file=None, max_feed_age_days=max_feed_age_days)
+
+
 def test_collect_inserts_and_dedupes(db):
     src = sources.create_source(
         db, name="Fixture", url="https://example.com/rss", feed_type="rss", lang="en",
         categories=[Category.economy.value, Category.finance.value],
     )
-    result = collect_new(db, client=_mock_client())
+    result = collect_new(db, client=_mock_client(), settings=_settings(365))
     assert result["new"] == 2
     assert result["errors"] == []
     db.refresh(src)
     assert src.last_ok_at is not None and src.error_count == 0
     # 二次运行全部去重
-    result2 = collect_new(db, client=_mock_client())
+    result2 = collect_new(db, client=_mock_client(), settings=_settings(365))
     assert result2["new"] == 0
     # 经济板块能看到该源文章（多板块覆盖查询）
     assert len(articles.list_articles(db, category="economy")) == 2
@@ -109,6 +116,28 @@ def test_fetch_source_degrades_on_unexpected_error(db):
 
     items, error = fetch_source(snap, Settings(_env_file=None), BoomClient())
     assert items == [] and error and "ValueError" in error
+
+
+def test_fetch_source_skips_entries_older_than_max_age():
+    now = datetime.now(timezone.utc)
+    stale = format_datetime(now - timedelta(days=60), usegmt=True)
+    fresh = format_datetime(now - timedelta(days=1), usegmt=True)
+    body = "x" * 240
+    feed = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Mixed</title>
+<item><title>Stale item</title><link>https://example.com/stale</link>
+<description>{body}</description><pubDate>{stale}</pubDate></item>
+<item><title>Fresh item</title><link>https://example.com/fresh</link>
+<description>{body}</description><pubDate>{fresh}</pubDate></item>
+</channel></rss>""".encode()
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, content=feed)))
+    snap = SimpleNamespace(id=1, name="Mixed", url="https://example.com/rss", feed_type="rss",
+                           lang="en", categories=["military"])
+
+    items, error = fetch_source(snap, _settings(), client)
+
+    assert error is None
+    assert [item["title"] for item in items] == ["Fresh item"]
 
 
 def test_collect_survives_source_level_exception(db, monkeypatch):

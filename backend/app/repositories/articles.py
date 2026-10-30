@@ -53,8 +53,11 @@ def insert_articles(db: Session, items: list[dict]) -> int:
 
 
 def list_articles(db: Session, category: str | None = None,
-                  limit: int = 30, offset: int = 0) -> list[Article]:
+                  limit: int = 30, offset: int = 0,
+                  since: datetime | None = None) -> list[Article]:
     query = _category_query(db, category) if category else db.query(Article)
+    if since:
+        query = query.filter(or_(Article.published_at.is_(None), Article.published_at >= since))
     return query.order_by(Article.fetched_at.desc()).offset(offset).limit(limit).all()
 
 

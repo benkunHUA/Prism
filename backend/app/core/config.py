@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     request_timeout_s: float = 20.0
     collect_concurrency: int = 4
     max_articles_per_source: int = 20
+    # 跳过发布时间早于该天数的 RSS 条目，避免旧闻被当成新采集内容
+    max_feed_age_days: int = 30
     max_content_chars: int = 8000
     max_analysis_input_chars: int = 6000
     top_articles_per_analysis: int = 30
