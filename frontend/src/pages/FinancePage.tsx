@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { api } from "../api/endpoints";
 import type { SnapshotItem } from "../api/types";
 import ArticleList from "../components/ArticleList";
+import OilSnapshotCard from "../components/OilSnapshotCard";
 import PageHeader from "../components/PageHeader";
 import ReportPanel from "../components/ReportPanel";
 import TimelineList from "../components/TimelineList";
@@ -17,27 +18,37 @@ const FINANCE_SUBTYPES = ["市场异动", "融资/IPO/并购", "监管动态", "
 
 export default function FinancePage() {
   const [assetClass, setAssetClass] = useState<string | undefined>(undefined);
-  const snapshots = useAsync(() => api.snapshots({ asset_class: assetClass }), [assetClass]);
+  const snapshots = useAsync(() => api.snapshots({}), []);
   const timeline = useAsync(() => api.timeline("finance"), []);
 
   const items = snapshots.data?.items ?? [];
-  const batchId = items[0]?.batch_id ?? null;
-  const capturedAt = items[0]?.captured_at ?? null;
+  const visibleItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.price !== null &&
+          item.price > 0 &&
+          (!assetClass || item.asset_class === assetClass),
+      ),
+    [items, assetClass],
+  );
+  const batchId = visibleItems[0]?.batch_id ?? null;
+  const capturedAt = visibleItems[0]?.captured_at ?? null;
 
   const compare = useMemo(() => {
     const batches: string[] = [];
-    for (const item of items) {
+    for (const item of visibleItems) {
       if (item.batch_id && !batches.includes(item.batch_id)) batches.push(item.batch_id);
       if (batches.length >= 2) break;
     }
     const latest = new Map<string, SnapshotItem>();
     const previous = new Map<string, SnapshotItem>();
-    for (const item of items) {
+    for (const item of visibleItems) {
       if (item.batch_id === batches[0]) latest.set(item.asset_name, item);
       else if (batches[1] && item.batch_id === batches[1]) previous.set(item.asset_name, item);
     }
     return { latest: Array.from(latest.values()), previous };
-  }, [items]);
+  }, [visibleItems]);
 
   const columns = [
     { title: "类别", dataIndex: "asset_class", key: "asset_class" },
@@ -78,6 +89,7 @@ export default function FinancePage() {
     <div className="aurora-stack">
       <PageHeader title={`${META.label}板块`} tagline={META.tagline} />
       <ReportPanel category="finance" />
+      <OilSnapshotCard items={items} loading={snapshots.loading} />
 
       <Card
         size="small"

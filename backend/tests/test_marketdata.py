@@ -3,7 +3,12 @@ from pathlib import Path
 import httpx
 
 from app.core.config import Settings
-from app.services.marketdata import EastmoneyProvider, StooqCsvProvider, run_snapshots
+from app.services.marketdata import (
+    EastmoneyProvider,
+    StooqCsvProvider,
+    parse_quote_index,
+    run_snapshots,
+)
 
 STOOQ_FIXTURE = Path(__file__).parent / "data" / "stooq_fixture.csv"
 EM_FIXTURE = Path(__file__).parent / "data" / "eastmoney_fixture.json"
@@ -62,6 +67,15 @@ def test_eastmoney_provider_batches_and_reports_missing():
     assert [r["asset_code"] for r in rows] == ["100.SPX", "101.GC00Y"]
     assert rows[0]["price"] == 7584.64 and rows[0]["change_pct"] == -0.46
     assert len(errors) == 1 and "100.NOPE" in errors[0]
+
+
+def test_quote_index_skips_non_positive_futures_prices():
+    quotes = parse_quote_index([
+        {"f12": "B00Y", "f13": 112, "f14": "布伦特原油", "f2": 0, "f3": 0},
+        {"f12": "CL00Y", "f13": 102, "f14": "NYMEX原油", "f2": 102.75, "f3": 0.74},
+    ])
+
+    assert set(quotes) == {"102.CL00Y"}
 
 
 def test_stooq_provider_parses_csv():

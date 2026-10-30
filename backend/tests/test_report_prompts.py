@@ -31,6 +31,7 @@ def test_daily_prompt_sections_differ_per_category(db):
     finance = build_daily_prompt(db, "finance", materials, settings)
     assert "## 议题立场变化" in politics and "## 资产表现" not in politics
     assert "## 资产表现" in finance and "## 议题立场变化" not in finance
+    assert "## 国际原油" in finance
 
 
 def test_brief_prompt_uses_board_focus(db):
@@ -38,7 +39,7 @@ def test_brief_prompt_uses_board_focus(db):
     prompt = build_brief_prompt(db, "finance", [_Article()], settings)
     assert "金融" in prompt and "3~5 条" in prompt
     assert "**事件：**" in prompt and "**影响：**" in prompt and "**来源：**" in prompt
-    assert "市场涨跌与驱动因素" in prompt
+    assert "国际原油的价格、价差与供给风险" in prompt
 
 
 def test_daily_prompt_includes_structured_context_when_present(db):

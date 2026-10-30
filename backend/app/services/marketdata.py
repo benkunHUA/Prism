@@ -39,10 +39,14 @@ def parse_quote_index(diff: list[dict]) -> dict[str, dict]:
         price = item.get("f2")
         if price in (None, "-"):
             continue
+        numeric_price = float(price)
+        # 盘前/休市时部分期货接口会返回 0，不能当成真实价格写入快照
+        if numeric_price <= 0:
+            continue
         change = item.get("f3")
         quotes[f"{item.get('f13')}.{item.get('f12')}"] = {
             "name": item.get("f14", ""),
-            "price": float(price),
+            "price": numeric_price,
             "change_pct": None if change in (None, "-") else float(change),
         }
     return quotes

@@ -65,6 +65,11 @@ export const ASSET_CLASSES = [
   { label: "加密资产", value: "crypto" },
 ];
 
+export const OIL_ASSETS = [
+  { code: "102.CL00Y", label: "WTI 原油" },
+  { code: "112.B00Y", label: "布伦特原油" },
+] as const;
+
 export const MODERATION_TYPE_LABELS: Record<string, string> = {
   timeline: "事件",
   weapon: "武器",
@@ -104,6 +109,12 @@ export const TEXT = {
   emptyIndicators: "暂无宏观指标数据",
   emptyStances: "暂无议题立场记录",
   emptySnapshots: "暂无行情快照（需在 .env 配置 MARKET_SYMBOLS 后执行采集）",
+  emptyOilSnapshots: "暂无有效的国际原油行情",
+  oilTitle: "国际原油",
+  oilUnit: "WTI · Brent · 美元/桶",
+  oilSpread: "WTI-Brent 价差",
+  oilSpreadHint: "WTI 减 Brent",
+  oilQuoteTime: "行情时间",
   emptyReports: "今日报告尚未生成，可先执行采集与分析任务",
   manualCollect: "手动采集",
   moderation: "待确认",

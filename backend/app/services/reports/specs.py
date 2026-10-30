@@ -63,13 +63,16 @@ REPORT_SPECS: dict[str, ReportSpec] = {
         category="finance",
         label="金融",
         daily_title="市场复盘",
-        daily_sections=("资产表现", "驱动事件归因", "资金与风险信号", "明日关注"),
+        daily_sections=("资产表现", "国际原油", "驱动事件归因", "资金与风险信号", "明日关注"),
         daily_focus=(
             "读者关心「价格怎么变、为什么变、风险在哪」。资产表现按板块与资产类别列出涨跌幅，"
             "归因只能引用材料中出现的驱动因素，风险信号要指出具体指标或事件。"
+            "「国际原油」必须单列：写明 WTI、布伦特价格与涨跌幅、两者价差；"
+            "再结合材料解释 OPEC+ 供给、库存、地缘风险、美元与需求变化。"
+            "结构化行情缺失时明确写「未获取」，禁止补造价格或库存数据。"
         ),
-        brief_focus="聚焦主要市场涨跌与驱动因素，标明风险信号。",
-        structured_blocks=("snapshots", "timeline"),
+        brief_focus="聚焦主要市场涨跌与驱动因素，优先覆盖国际原油的价格、价差与供给风险。",
+        structured_blocks=("oil", "snapshots", "timeline"),
     ),
 }
 

@@ -10,6 +10,7 @@ from app.models.entities import Analysis, Category
 from app.repositories import analyses as analyses_repo
 from app.repositories import articles as articles_repo
 from app.services.llm import ChatProvider
+from app.services.oil import prioritize_oil_materials
 from app.services.reports import build_brief_prompt, build_daily_prompt, spec_for
 
 ALL = [c.value for c in Category]
@@ -33,13 +34,23 @@ def _parse_citation_ids(content_md: str, max_id: int) -> list[int]:
     return ids
 
 
+def _select_materials(db: Session, category: str, since: datetime, until: datetime,
+                      settings: Settings):
+    limit = settings.top_articles_per_analysis
+    pool_limit = limit * 3 if category == "finance" else limit
+    materials = articles_repo.articles_for_analysis(
+        db, category, since, until, limit=pool_limit
+    )
+    if category == "finance":
+        return prioritize_oil_materials(materials, limit)
+    return materials
+
+
 def generate_brief(db: Session, category: str, provider: ChatProvider,
                    settings: Settings, *, since: datetime | None = None) -> Analysis | None:
     until = _now()
     since = since or (until - timedelta(hours=6))
-    materials = articles_repo.articles_for_analysis(
-        db, category, since, until, limit=settings.top_articles_per_analysis
-    )
+    materials = _select_materials(db, category, since, until, settings)
     if not materials:
         return None
     prompt = build_brief_prompt(db, category, materials, settings)
@@ -62,9 +73,7 @@ def generate_daily(db: Session, category: str, provider: ChatProvider,
                    settings: Settings, *, until: datetime | None = None) -> Analysis | None:
     until = until or _now()
     since = until - timedelta(hours=24)
-    materials = articles_repo.articles_for_analysis(
-        db, category, since, until, limit=settings.top_articles_per_analysis
-    )
+    materials = _select_materials(db, category, since, until, settings)
     if not materials:
         return None
     prompt = build_daily_prompt(db, category, materials, settings)

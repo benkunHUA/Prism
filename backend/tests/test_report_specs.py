@@ -17,13 +17,14 @@ def test_sections_are_distinct_between_categories():
     assert spec_for("military").daily_sections[1] == "新武器与装备动态"
     assert spec_for("economy").daily_sections[0] == "数据要点"
     assert spec_for("finance").daily_sections[0] == "资产表现"
+    assert "国际原油" in spec_for("finance").daily_sections
 
 
 def test_structured_blocks_match_board_features():
     assert spec_for("politics").structured_blocks == ("timeline", "stances")
     assert spec_for("military").structured_blocks == ("weapons", "timeline")
     assert spec_for("economy").structured_blocks == ("indicators", "timeline")
-    assert spec_for("finance").structured_blocks == ("snapshots", "timeline")
+    assert spec_for("finance").structured_blocks == ("oil", "snapshots", "timeline")
 
 
 def test_unknown_category_raises():

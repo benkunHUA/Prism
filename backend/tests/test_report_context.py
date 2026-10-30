@@ -31,6 +31,15 @@ def _seed_structured(db):
         dict(asset_code="100.SPX", asset_name="标普500", asset_class="index",
              price=5730.0, change_pct=0.3, captured_at=datetime(2026, 10, 10, 21, 0),
              batch_id="b0", source="eastmoney"),
+        dict(asset_code="102.CL00Y", asset_name="NYMEX原油", asset_class="commodity",
+             price=102.75, change_pct=0.74, captured_at=datetime(2026, 10, 11, 21, 0),
+             batch_id="b1", source="eastmoney"),
+        dict(asset_code="112.B00Y", asset_name="布伦特原油", asset_class="commodity",
+             price=110.4, change_pct=-1.15, captured_at=datetime(2026, 10, 11, 21, 0),
+             batch_id="b1", source="eastmoney"),
+        dict(asset_code="102.CL00Y", asset_name="NYMEX原油", asset_class="commodity",
+             price=101.58, change_pct=-1.64, captured_at=datetime(2026, 10, 10, 21, 0),
+             batch_id="b0", source="eastmoney"),
     ])
     stances.create_stance(db, topic="俄乌", actor="美国国务院", stance_text="继续援乌",
                           tone="支持", stated_at=datetime(2026, 10, 11, 10, 0),
@@ -57,6 +66,8 @@ def test_finance_context_compares_with_previous_batch(db):
     text = build_board_context(db, spec_for("finance"))
     assert "标普500" in text and "+1.20%" in text and "上轮涨跌 +0.30%" in text
     assert "纳斯达克" in text and "-0.40%" in text
+    assert "### 国际原油" in text and "WTI-Brent 价差 -7.65" in text
+    assert "WTI原油" in text and "布伦特原油" in text
 
 
 def test_politics_context_carries_stances(db):

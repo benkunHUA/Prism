@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from app.core.constants import OIL_ASSETS
 from app.repositories import indicators as indicators_repo
 from app.repositories import snapshots as snapshots_repo
 from app.repositories import stances as stances_repo
@@ -75,18 +76,28 @@ def _indicators_block(db: Session) -> str:
     return "\n".join(lines)
 
 
-def _snapshots_block(db: Session) -> str:
+def _snapshot_batches(db: Session):
     batch_ids = snapshots_repo.recent_batch_ids(db, limit=2)
     if not batch_ids:
-        return ""
+        return None
     latest = {s.asset_name: s for s in snapshots_repo.list_snapshots(db, batch_id=batch_ids[0])}
     previous = (
         {s.asset_name: s for s in snapshots_repo.list_snapshots(db, batch_id=batch_ids[1])}
         if len(batch_ids) > 1
         else {}
     )
+    return batch_ids, latest, previous
+
+
+def _snapshots_block(db: Session) -> str:
+    batches = _snapshot_batches(db)
+    if batches is None:
+        return ""
+    batch_ids, latest, previous = batches
     lines = [f"### 市场快照（批次 {batch_ids[0]}）"]
     for name, snap in sorted(latest.items(), key=lambda kv: kv[1].asset_class or ""):
+        if snap.price is None or snap.price <= 0:
+            continue
         line = (
             f"- {snap.asset_class or '—'} | {name} | 价格 {snap.price} | "
             f"本批次 {_fmt_pct(snap.change_pct)}"
@@ -98,7 +109,40 @@ def _snapshots_block(db: Session) -> str:
     return "\n".join(lines)
 
 
+def _oil_block(db: Session) -> str:
+    batches = _snapshot_batches(db)
+    if batches is None:
+        return ""
+    _, latest, previous = batches
+    by_code = {
+        snap.asset_code: snap
+        for snap in latest.values()
+        if snap.price is not None and snap.price > 0
+    }
+    rows = [by_code[code] for code in OIL_ASSETS if code in by_code]
+    if not rows:
+        return ""
+
+    lines = ["### 国际原油（美元/桶）"]
+    for snap in rows:
+        line = (
+            f"- {OIL_ASSETS.get(snap.asset_code, snap.asset_name)} | "
+            f"价格 {snap.price} | 本批次 {_fmt_pct(snap.change_pct)}"
+        )
+        prev = previous.get(snap.asset_name)
+        if prev is not None and prev.price and prev.price > 0:
+            line += f" | 上轮价格 {prev.price} | 上轮涨跌 {_fmt_pct(prev.change_pct)}"
+        lines.append(line)
+
+    wti = by_code.get("102.CL00Y")
+    brent = by_code.get("112.B00Y")
+    if wti is not None and brent is not None:
+        lines.append(f"- WTI-Brent 价差 {wti.price - brent.price:+.2f}")
+    return "\n".join(lines)
+
+
 _BLOCK_BUILDERS = {
+    "oil": lambda db, spec: _oil_block(db),
     "timeline": lambda db, spec: _timeline_block(db, spec.category),
     "weapons": lambda db, spec: _weapons_block(db),
     "stances": lambda db, spec: _stances_block(db),

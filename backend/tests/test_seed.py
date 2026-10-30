@@ -36,6 +36,15 @@ def test_seed_covers_ukraine_and_middle_east_conflicts():
     assert "https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml" in urls
 
 
+def test_seed_covers_international_oil_sources():
+    seeds = load_seed_sources()
+    urls = {item["url"] for item in seeds if "finance" in item["categories"]}
+
+    assert "https://www.eia.gov/rss/todayinenergy.xml" in urls
+    assert "https://oilprice.com/rss/main" in urls
+    assert "https://www.investing.com/rss/news_11.rss" in urls
+
+
 def test_add_missing_seed_sources_only_adds_new(db):
     seeds = load_seed_sources()
     kept = seeds[0]
